@@ -411,6 +411,7 @@ body:has(.app.chat) .fab{display:none}
   <div class="srow"><input class="fld" type="time" id="sdesde" value="23:00"><input class="fld" type="time" id="shasta" value="08:00"></div>
   <label class="ajlbl"><input type="checkbox" id="socultar"> No enviar confirmación de lectura</label>
   <label class="ajlbl"><input type="checkbox" id="sfotopriv"> Mi foto de perfil solo para contactos</label>
+  <label class="ajlbl"><input type="checkbox" id="svibrar"> Vibrar en llamadas y mensajes</label>
   <label class="ajlbl"><input type="checkbox" id="sahorro"> Ahorro de datos (no cargar fotos hasta tocarlas)</label>
   <label class="ajlbl" for="sfondo">Fondo del chat</label>
   <select class="fld" id="sfondo"><option value="normal">Normal</option><option value="rojo">Rojo y negro</option><option value="azul">Azul oscuro</option><option value="puntos">Puntos</option></select>
@@ -427,7 +428,6 @@ body:has(.app.chat) .fab{display:none}
   <button class="btn-a" id="scerrarotros" type="button">Cerrar sesión en otros dispositivos</button>
   <button class="btn-a" id="smode" type="button">Cambiar a modo claro</button>
   <button class="btn-a" id="snot" type="button">Activar notificaciones</button>
-  <button class="btn-a" id="sprobar" type="button">Probar notificación</button>
   <button class="link" id="scerrar" type="button">Cerrar</button>
  </div>
 </div>
@@ -1095,10 +1095,15 @@ function actualizarBotonNotif(){
  const b=$("#snot");
  if(!("Notification" in window)){b.textContent="Notificaciones no disponibles";b.disabled=true;return}
  const perm=Notification.permission;
- b.textContent=perm==="granted"?"Notificaciones activadas":perm==="denied"?"Notificaciones bloqueadas (ajústalas en el navegador)":"Activar notificaciones";
- b.disabled=perm!=="default";
+ b.textContent=perm==="granted"?"Guardar notificaciones en este móvil":perm==="denied"?"Notificaciones bloqueadas (ajústalas en el navegador)":"Activar notificaciones";
+ b.disabled=false;
 }
-$("#snot").onclick=async()=>{await Notification.requestPermission();actualizarBotonNotif();suscribirPush()};
+$("#snot").onclick=async()=>{
+ if(Notification.permission==="default")await Notification.requestPermission();
+ actualizarBotonNotif();
+ if(Notification.permission!=="granted")return toast("Permite las notificaciones para continuar");
+ await suscribirPush(true);
+};
 actualizarBotonNotif();
 
 // Mantén pulsado un contacto para ponerle un nombre que solo veas tú
@@ -1248,15 +1253,17 @@ function urlB64ToUint8(b){
  const raw=atob((b+pad).replace(/-/g,"+").replace(/_/g,"/"));
  return Uint8Array.from(raw,ch=>ch.charCodeAt(0));
 }
-async function suscribirPush(){
+async function suscribirPush(avisar=false){
  try{
   if(!("PushManager" in window)||!("serviceWorker" in navigator)||!("Notification" in window)||Notification.permission!=="granted")return;
   const reg=await navigator.serviceWorker.ready;
   let sub=await reg.pushManager.getSubscription();
   if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToUint8(VAPID_PUBLIC)});
   const j=sub.toJSON();
-  await sb.from("push_subscriptions").upsert({user_id:me.id,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth},{onConflict:"endpoint"});
- }catch(e){console.warn("Push no disponible:",e)}
+  const {error:errSub}=await sb.from("push_subscriptions").upsert({user_id:me.id,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth},{onConflict:"endpoint"});
+  if(errSub)throw errSub;
+  if(avisar)toast("Notificaciones guardadas en este móvil");
+ }catch(e){console.warn("Push no disponible:",e);if(avisar)toast("No se guardó: "+(e?.message||e))}
 }
 
 // ---------- Escribiendo, editar, silenciar, modo claro, bloquear y denunciar ----------
@@ -1993,27 +2000,58 @@ function pedirCodigoGrupo(g){
 }
 const abrirChatBase=openChat;
 openChat=async function(id){
- const g=grupoCodigos.get(id);
- if(g&&g.codigo_hash&&!desbloq.includes(id)){
-  const ok=await pedirCodigoGrupo(g);
+ const {data,error}=await sb.from("conversations").select("id,codigo_nombre,codigo_hash,foto_path").eq("id",id).maybeSingle();
+ if(error){
+  toast("No se pudo comprobar el grupo: "+error.message);
+  return;
+ }
+ if(data&&data.codigo_hash&&!desbloq.includes(id)){
+  const ok=await pedirCodigoGrupo(data);
   if(!ok)return;
  }
  return abrirChatBase(id);
 };
 
-// ---------- Probar notificación (sin servidor) ----------
-$("#sprobar").onclick=async()=>{
- if(!("Notification" in window)){toast("Este navegador no permite notificaciones");return}
- if(Notification.permission!=="granted"){toast("Primero activa las notificaciones");return}
- const opts={body:"Si ves esto, las notificaciones del móvil funcionan.",tag:"prueba",vibrate:[150]};
- try{
-  const reg=navigator.serviceWorker?await navigator.serviceWorker.getRegistration():null;
-  if(reg)await reg.showNotification("Prueba de ChatStack",opts);
-  else new Notification("Prueba de ChatStack",opts);
-  toast("Notificación enviada desde el móvil");
- }catch(e){
-  toast("No se pudo mostrar: "+e.message);
+// ---------- Llamadas desde la notificación ----------
+async function procesarLlamada(p){
+ const id=p.get("llamada");
+ const accion=p.get("accion");
+ if(!id)return;
+ const {data:row,error}=await sb.from("calls").select("*").eq("id",id).maybeSingle();
+ if(error||!row||row.status!=="ringing"){
+  toast("La llamada ya no está activa");
+  return;
  }
+ if(accion==="rechazar"){
+  await sb.from("calls").update({status:"rejected"}).eq("id",id);
+  toast("Llamada rechazada");
+  return;
+ }
+ await loadChats();
+ if(incoming){clearTimeout(incoming.t);incoming=null}
+ onCallInsert(row);
+ if(accion==="aceptar")setTimeout(()=>$("#iacc")?.click(),600);
+}
+navigator.serviceWorker?.addEventListener("message",e=>{
+ if(e.data?.tipo!=="abrir-llamada")return;
+ const u=new URL(e.data.url,location.href);
+ procesarLlamada(u.searchParams);
+});
+
+// ---------- Vibración de notificaciones ----------
+async function guardarVibracion(v){
+ try{
+  const c=await caches.open("cs-config");
+  await c.put(location.origin+"/cs-config.json",new Response(JSON.stringify({vibrar:v})));
+ }catch(e){console.warn("No se guardó la vibración:",e)}
+}
+$("#svibrar").checked=localStorage.getItem("cs_vibrar")!=="0";
+guardarVibracion($("#svibrar").checked);
+$("#svibrar").onchange=e=>{
+ const v=e.target.checked;
+ try{localStorage.setItem("cs_vibrar",v?"1":"0")}catch(err){}
+ guardarVibracion(v);
+ toast(v?"Vibración activada":"Vibración desactivada");
 };
 
 // ---------- Tiempo real ----------
@@ -2075,6 +2113,8 @@ async function manejarSesion(session){
     suscribirPush();
     latido();
     subscribe();
+    procesarLlamada(new URLSearchParams(location.search));
+    if(location.search.includes("llamada="))history.replaceState(null,"",location.pathname);
    }catch(err){
     console.error("Error al cargar datos:",err);
     started=false;
