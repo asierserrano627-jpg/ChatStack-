@@ -39,6 +39,7 @@ self.addEventListener("push",e=>{
  try{d=e.data.json()}catch(_){}
  const opciones={
   body:d.body,
+  icon:d.icon||"icon-192.png",
   tag:d.tag||"chatstack",
   requireInteraction:!!d.llamada,
   vibrate:d.llamada?[400,200,400,200,400]:[150],
