@@ -37,18 +37,27 @@ self.addEventListener("fetch",e=>{
 self.addEventListener("push",e=>{
  let d={title:"ChatStack",body:"Tienes una novedad"};
  try{d=e.data.json()}catch(_){}
+ const tag=d.tag||"chatstack";
  const opciones={
   body:d.body,
   icon:d.icon||"icon-192.png",
-  tag:d.tag||"chatstack",
+  tag,
+  silent:false,
   requireInteraction:!!d.llamada,
-  vibrate:d.llamada?[400,200,400,200,400]:[150],
+  vibrate:d.llamada?[500,250,500,250,500,250,500]:[200],
   data:{callId:d.callId||null}
  };
  if(d.llamada&&d.callId){
   opciones.actions=[{action:"aceptar",title:"Aceptar"},{action:"rechazar",title:"Rechazar"}];
  }
- e.waitUntil(self.registration.showNotification(d.title,opciones));
+ e.waitUntil((async()=>{
+  await self.registration.showNotification(d.title,opciones);
+  if(d.llamada){
+   await new Promise(r=>setTimeout(r,30000));
+   const avisos=await self.registration.getNotifications({tag});
+   avisos.forEach(n=>n.close());
+  }
+ })());
 });
 self.addEventListener("notificationclick",e=>{
  e.notification.close();
