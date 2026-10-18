@@ -10,7 +10,7 @@ self.addEventListener("install",e=>{
 self.addEventListener("activate",e=>{
  e.waitUntil((async()=>{
   const claves=await caches.keys();
-  await Promise.all(claves.filter(k=>k!==CACHE).map(k=>caches.delete(k)));
+  await Promise.all(claves.filter(k=>k!==CACHE&&k!=="cs-config").map(k=>caches.delete(k)));
   await self.clients.claim();
  })());
 });
@@ -34,6 +34,15 @@ self.addEventListener("fetch",e=>{
   }).catch(()=>caches.match(req).then(r=>r||caches.match("./chatstack_v3.html")))
  );
 });
+async function vibrarActivado(){
+ try{
+  const c=await caches.open("cs-config");
+  const r=await c.match(self.location.origin+"/cs-config.json");
+  if(!r)return true;
+  const j=await r.json();
+  return j.vibrar!==false;
+ }catch(_){return true}
+}
 self.addEventListener("push",e=>{
  let d={title:"ChatStack",body:"Tienes una novedad"};
  try{d=e.data.json()}catch(_){}
@@ -44,13 +53,15 @@ self.addEventListener("push",e=>{
   tag,
   silent:false,
   requireInteraction:!!d.llamada,
-  vibrate:d.llamada?[500,250,500,250,500,250,500]:[200],
+  vibrate:[],
   data:{callId:d.callId||null}
  };
  if(d.llamada&&d.callId){
   opciones.actions=[{action:"aceptar",title:"Aceptar"},{action:"rechazar",title:"Rechazar"}];
  }
  e.waitUntil((async()=>{
+  const vibrar=await vibrarActivado();
+  if(vibrar)opciones.vibrate=d.llamada?[500,250,500,250,500,250,500]:[200];
   await self.registration.showNotification(d.title,opciones);
   if(d.llamada){
    await new Promise(r=>setTimeout(r,30000));
