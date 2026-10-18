@@ -37,14 +37,34 @@ self.addEventListener("fetch",e=>{
 self.addEventListener("push",e=>{
  let d={title:"ChatStack",body:"Tienes una novedad"};
  try{d=e.data.json()}catch(_){}
- e.waitUntil(self.registration.showNotification(d.title,{body:d.body,tag:d.tag||"chatstack",requireInteraction:!!d.llamada,vibrate:d.llamada?[300,200,300]:[150]}));
+ const opciones={
+  body:d.body,
+  tag:d.tag||"chatstack",
+  requireInteraction:!!d.llamada,
+  vibrate:d.llamada?[400,200,400,200,400]:[150],
+  data:{callId:d.callId||null}
+ };
+ if(d.llamada&&d.callId){
+  opciones.actions=[{action:"aceptar",title:"Aceptar"},{action:"rechazar",title:"Rechazar"}];
+ }
+ e.waitUntil(self.registration.showNotification(d.title,opciones));
 });
 self.addEventListener("notificationclick",e=>{
  e.notification.close();
+ const callId=e.notification.data&&e.notification.data.callId;
+ let destino="./chatstack_v3.html";
+ if(callId){
+  destino+="?llamada="+encodeURIComponent(callId);
+  if(e.action==="aceptar"||e.action==="rechazar")destino+="&accion="+e.action;
+ }
  e.waitUntil(
   self.clients.matchAll({type:"window",includeUncontrolled:true}).then(cs=>{
-   if(cs.length)return cs[0].focus();
-   return self.clients.openWindow("./");
+   const w=cs.find(c=>c.url.includes("chatstack_v3.html"));
+   if(w){
+    w.postMessage({tipo:"abrir-llamada",url:destino});
+    return w.focus();
+   }
+   return self.clients.openWindow(destino);
   })
  );
 });
