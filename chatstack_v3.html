@@ -343,6 +343,9 @@ html[data-theme="galaxia"] .main::before,html[data-theme="galaxia"] .main::after
 .sw small{font-size:11px;color:var(--mute)}
 .sw.bloq{opacity:.55}
 .sw.bloq i{filter:grayscale(1)}
+.tiene-estado{outline:3px solid var(--red2);outline-offset:3px}
+.gal-bar{display:block;align-self:stretch;height:6px;border-radius:6px;background:#ffffff18;overflow:hidden;margin-top:2px}
+.gal-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#7c5cff,#c7b6ff);transition:width .8s linear}
 </style>
 </head>
 <body>
@@ -380,7 +383,7 @@ html[data-theme="galaxia"] .main::before,html[data-theme="galaxia"] .main::after
      <button class="sw" data-t="carmesi"><i style="--c:#dc143c"></i>Carmesí</button>
      <button class="sw" data-t="granate"><i style="--c:#8e1b3a"></i>Granate</button>
      <button class="sw" data-t="azul"><i style="--c:#1d6fe0"></i>Azul</button>
-     <button class="sw" data-t="galaxia" id="swgal"><i style="--c:#7c5cff"></i>Galaxia<small id="gprog"></small></button>
+     <button class="sw" data-t="galaxia" id="swgal"><i style="--c:#7c5cff"></i>Galaxia<span class="gal-bar"><i id="gbarra"></i></span><small id="gprog"></small></button>
     </div>
    </div>
   </div>
@@ -549,8 +552,9 @@ html[data-theme="galaxia"] .main::before,html[data-theme="galaxia"] .main::after
   <small id="est-musica-nombre"></small>
   <input class="fld" id="est-yt" placeholder="Link de YouTube para la música (opcional)" autocomplete="off">
   <input type="file" id="est-musica-file" accept="audio/*" hidden>
-  <button class="btn" id="est-publicar" type="button">Publicar texto</button>
-  <button class="btn-a" id="est-foto" type="button">Publicar foto</button>
+  <button class="btn-a" id="est-foto" type="button">Elegir foto</button>
+  <small id="est-foto-nombre"></small>
+  <button class="btn" id="est-publicar" type="button">Publicar</button>
   <input type="file" id="est-file" accept="image/*" hidden>
   <button class="link" id="est-cerrar" type="button">Cancelar</button>
  </div>
@@ -597,11 +601,13 @@ function toast(t){
  d.style.cssText="position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);padding:10px 16px;border-radius:12px;z-index:90;max-width:90%;font-size:14px";
  document.body.appendChild(d);setTimeout(()=>d.remove(),3500);
 }
-function avHtml(c,size="44px",cls=""){
+function avHtml(c,size="44px",cls="",conAro=true){
  const oid=c.other?.id;
  const ocultar=!!oid&&oid!==me.id&&privadas.has(oid)&&!contacts.some(x=>x.id===oid);
  const url=ocultar?null:c.other?.avatar_url;
- return `<div class="av ${cls}" style="position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;width:${size};height:${size}">${esc(c.c||"")}${url?`<img src="${esc(url)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.remove()">`:""}</div>`;
+ const av=`<div class="av ${cls}" style="position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;width:${size};height:${size}">${esc(c.c||"")}${url?`<img src="${esc(url)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.remove()">`:""}</div>`;
+ if(!conAro||!oid||!hayEstado(oid))return av;
+ return `<span class="ring${estadoVisto(oid)?" seen":""}" style="display:inline-flex;border-radius:50%;flex:none">${av}</span>`;
 }
 function setErr(t,kind="err"){
  const el=$("#aerr");
@@ -1056,23 +1062,32 @@ document.querySelectorAll(".sw").forEach(b=>b.onclick=()=>aplicarAcento(b.datase
 // ---------- Acento de color y tema Galaxia (500 s de uso) ----------
 const GAL_META=500;
 let galSeg=(()=>{try{return Math.min(GAL_META,parseFloat(localStorage.getItem("cs_gal_seg")||"0")||0)}catch(e){return 0}})();
-let galOk=galSeg>=GAL_META;
+let galOk=true; // PRUEBAS: Galaxia desbloqueado. Para volver al bloqueo normal: galSeg>=GAL_META
 let acento=(()=>{try{return localStorage.getItem("cs_acento")||"rojo"}catch(e){return "rojo"}})();
-const galCv=document.createElement("canvas");galCv.id="galbg";document.body.prepend(galCv);
+let galCv=document.createElement("canvas");galCv.id="galbg";document.body.prepend(galCv);
 let galAnim=null,galBase=null,galTw=[];
 
 function galGuardar(){try{localStorage.setItem("cs_gal_seg",String(galSeg))}catch(e){}}
 function galPintarProgreso(){
  const el=document.getElementById("gprog");
  if(el)el.textContent=galOk?"Desbloqueado":Math.floor(galSeg)+" / "+GAL_META+" s";
+ const b=document.getElementById("gbarra");
+ if(b)b.style.width=(galOk?100:Math.min(100,galSeg/GAL_META*100))+"%";
  document.getElementById("swgal")?.classList.toggle("bloq",!galOk);
 }
-// Cuenta solo mientras la app está visible; se guarda en cada segundo, así que sobrevive a cerrar la app
+let galFoco=document.visibilityState==="visible";
+addEventListener("focus",()=>{galFoco=true});
+addEventListener("blur",()=>{galFoco=false});
+document.addEventListener("visibilitychange",()=>{galFoco=document.visibilityState==="visible"});
+let galTick=Date.now();
 setInterval(()=>{
- if(document.visibilityState!=="visible"||galOk)return;
- galSeg=Math.min(GAL_META,galSeg+1);
+ const ahora=Date.now();
+ const dt=(ahora-galTick)/1000;
+ galTick=ahora;
+ if(galOk||document.visibilityState!=="visible"||!galFoco||dt>5)return;
+ galSeg=Math.min(GAL_META,galSeg+dt);
  galGuardar();
- if(galSeg>=GAL_META){galOk=true;toast("¡Tema Galaxia desbloqueado!")}
+ if(galSeg>=GAL_META){galOk=true;galGuardar();toast("¡Tema Galaxia desbloqueado!")}
  galPintarProgreso();
 },1000);
 addEventListener("pagehide",galGuardar);
@@ -1170,7 +1185,130 @@ function galPrerender(){
  for(let i=0;i<140;i++)galTw.push({x:rnd()*W,y:rnd()*H,r:0.6+rnd()*1.2,a:0.4+rnd()*0.5,f:0.5+rnd()*1.8,p:rnd()*6.28});
 }
 
+const GAL_FRAG=`
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+uniform vec2 uRes;
+uniform float uT;
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float vnoise(vec2 p){
+ vec2 i=floor(p), f=fract(p);
+ vec2 u=f*f*(3.0-2.0*f);
+ return mix(mix(hash(i),hash(i+vec2(1.0,0.0)),u.x),mix(hash(i+vec2(0.0,1.0)),hash(i+vec2(1.0,1.0)),u.x),u.y);
+}
+float fbm(vec2 p){
+ float v=0.0,a=0.5;
+ for(int i=0;i<5;i++){v+=a*vnoise(p);p=p*2.03+vec2(1.7,9.2);a*=0.5;}
+ return v;
+}
+float estrellas(vec2 uv,float escala,float umbral){
+ vec2 p=uv*escala;
+ vec2 i=floor(p), f=fract(p)-0.5;
+ float h=hash(i);
+ float on=step(umbral,h);
+ vec2 off=vec2(hash(i+3.1),hash(i+7.7))-0.5;
+ float d=length(f-off*0.6);
+ float nucleo=smoothstep(0.07,0.0,d);
+ float halo=exp(-d*d*70.0)*0.45;
+ float tw=0.75+0.25*sin(uT*(1.0+h*3.0)+h*40.0);
+ return on*(nucleo+halo)*tw*(0.35+0.65*fract(h*17.0));
+}
+void main(){
+ vec2 uv=(gl_FragCoord.xy-0.5*uRes)/uRes.y;
+ vec3 col=mix(vec3(0.004,0.005,0.02),vec3(0.02,0.012,0.05),smoothstep(-0.6,0.6,uv.y));
+ // Vía Láctea: banda diagonal con polvo y núcleo cálido
+ float ang=-0.45;
+ vec2 q=vec2(cos(ang)*uv.x-sin(ang)*uv.y,sin(ang)*uv.x+cos(ang)*uv.y);
+ float banda=exp(-q.y*q.y*9.0);
+ vec2 np=vec2(q.x*2.2+uT*0.004,q.y*4.0);
+ float densidad=fbm(np*1.6);
+ float polvo=fbm(np*3.1+4.0);
+ col+=vec3(1.0,0.86,0.66)*banda*(0.3+0.7*densidad)*0.85;
+ col+=vec3(0.45,0.36,0.6)*banda*densidad*0.35;
+ col*=1.0-0.6*banda*smoothstep(0.35,0.7,polvo);
+ // nebulosas de color
+ float neb=fbm(uv*2.2+vec2(uT*0.006,0.0));
+ col+=vec3(0.38,0.12,0.48)*smoothstep(0.5,0.85,neb)*0.28*(0.4+banda);
+ col+=vec3(0.1,0.36,0.52)*smoothstep(0.55,0.9,fbm(uv*3.0-3.0))*0.2;
+ // estrellas en tres capas
+ float s=estrellas(uv,70.0,0.93)+estrellas(uv,30.0,0.9)*0.8+estrellas(uv,13.0,0.96)*1.3;
+ col+=vec3(s)*vec3(1.0,0.97,0.92);
+ // planeta con iluminación, bandas, atmósfera y brillo
+ vec2 pc=vec2(0.3,-0.2);
+ float R=0.11;
+ vec2 d=(uv-pc)/R;
+ float r2=dot(d,d);
+ if(r2<1.0){
+  float z=sqrt(1.0-r2);
+  vec3 n=vec3(d.x,d.y,z);
+  vec3 L=normalize(vec3(-0.6,0.6,0.55));
+  float dif=max(dot(n,L),0.0);
+  float bandas=sin(d.y*22.0+fbm(vec2(d.x*2.0,d.y*3.0)+uT*0.02)*4.0);
+  vec3 sup=mix(vec3(0.74,0.56,0.4),vec3(0.95,0.82,0.6),bandas*0.5+0.5);
+  sup=mix(sup,vec3(0.5,0.34,0.24),smoothstep(0.6,1.0,fbm(d*3.0+2.0))*0.6);
+  vec3 pcol=sup*(0.03+dif);
+  pcol+=vec3(1.0)*pow(max(dot(reflect(-L,n),vec3(0.0,0.0,1.0)),0.0),30.0)*0.06;
+  pcol+=vec3(0.3,0.6,1.0)*pow(1.0-z,3.0)*0.6*(0.3+dif);
+  col=mix(col,pcol,smoothstep(1.0,0.99,sqrt(r2)));
+ }
+ float ar=length(uv-pc)/R;
+ col+=vec3(0.25,0.5,1.0)*exp(-(ar-1.0)*(ar-1.0)*40.0)*step(1.0,ar)*0.35;
+ col*=1.0-0.35*dot(uv,uv);
+ gl_FragColor=vec4(max(col,vec3(0.0)),1.0);
+}
+`;
+let galGL=null,galProg=null;
+function galIniciarGL(){
+ if(galGL)return true;
+ const gl=galCv.getContext("webgl",{antialias:false,alpha:false});
+ if(!gl)return false;
+ const sh=(tipo,src)=>{
+  const o=gl.createShader(tipo);gl.shaderSource(o,src);gl.compileShader(o);
+  if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(o));
+  return o;
+ };
+ try{
+  const pr=gl.createProgram();
+  gl.attachShader(pr,sh(gl.VERTEX_SHADER,"attribute vec2 p;void main(){gl_Position=vec4(p,0.0,1.0);}"));
+  gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,GAL_FRAG));
+  gl.linkProgram(pr);
+  if(!gl.getProgramParameter(pr,gl.LINK_STATUS))throw new Error("no se pudo enlazar");
+  gl.useProgram(pr);
+  const buf=gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+  const loc=gl.getAttribLocation(pr,"p");
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+  galProg={uRes:gl.getUniformLocation(pr,"uRes"),uT:gl.getUniformLocation(pr,"uT")};
+  galGL=gl;
+  return true;
+ }catch(err){
+  // el canvas ya tiene un contexto WebGL: lo cambiamos por uno nuevo para poder usar 2D
+  console.warn("WebGL no disponible, uso modo 2D:",err);
+  const nuevo=document.createElement("canvas");nuevo.id="galbg";nuevo.style.display=galCv.style.display;
+  galCv.replaceWith(nuevo);galCv=nuevo;
+  return false;
+ }
+}
+function galDimensionar(){
+ // 60 % de resolución: se ve nítido y va fluido; el móvil dibuja a la frecuencia de su pantalla
+ galCv.width=Math.max(1,Math.round(innerWidth*0.6));
+ galCv.height=Math.max(1,Math.round(innerHeight*0.6));
+}
 function galFrame(t){
+ if(galGL){
+  galGL.viewport(0,0,galCv.width,galCv.height);
+  galGL.uniform2f(galProg.uRes,galCv.width,galCv.height);
+  galGL.uniform1f(galProg.uT,t/1000);
+  galGL.drawArrays(galGL.TRIANGLES,0,3);
+  galAnim=requestAnimationFrame(galFrame);
+  return;
+ }
+ // respaldo 2D si el dispositivo no tiene WebGL
  if(!galBase)return;
  const ctx=galCv.getContext("2d");
  ctx.setTransform(1,0,0,1,0,0);
@@ -1188,7 +1326,7 @@ function galFrame(t){
 function galActivar(on){
  if(on){
   galCv.style.display="block";
-  galPrerender();
+  if(galIniciarGL())galDimensionar();else galPrerender();
   if(!galAnim)galAnim=requestAnimationFrame(galFrame);
  }else{
   if(galAnim){cancelAnimationFrame(galAnim);galAnim=null}
@@ -1198,7 +1336,7 @@ function galActivar(on){
 let galRT=null;
 addEventListener("resize",()=>{
  clearTimeout(galRT);
- galRT=setTimeout(()=>{if(acento==="galaxia")galPrerender()},250);
+ galRT=setTimeout(()=>{if(acento==="galaxia"){if(galGL)galDimensionar();else galPrerender()}},250);
 });
 
 if(acento==="galaxia"&&!galOk)acento="rojo";
@@ -2147,7 +2285,8 @@ async function sondearLlamadas(){
  if(!me||!me.id||document.visibilityState!=="visible")return;
  const desde=new Date(Date.now()-60000).toISOString();
  const {data,error}=await sb.from("calls").select("*").eq("status","ringing").neq("caller_id",me.id).gte("created_at",desde).order("created_at",{ascending:false}).limit(3);
- if(error||!data)return;
+ if(error){dbgLlamada("sondeo-error","sondeo: "+error.message);return}
+ if(!data)return;
  for(const r of data)onCallInsert(r);
 }
 setInterval(sondearLlamadas,3000);
@@ -2355,6 +2494,7 @@ async function procesarLlamada(p){
  }
  await loadChats();
  if(incoming){clearTimeout(incoming.t);incoming=null}
+ llamadasVistas.delete(row.id);
  onCallInsert(row);
  if(accion==="aceptar")setTimeout(()=>$("#iacc")?.click(),600);
 }
@@ -2461,6 +2601,8 @@ async function cargarEstados(){
  }else estadosUsers=new Map();
  const {data:vs}=await sb.from("estado_vistas").select("estado_id").eq("user_id",me.id);
  estadosVistos=new Set((vs||[]).map(v=>v.estado_id));
+ const miE=estados.some(e=>e.user_id===me.id);
+ document.querySelectorAll("#btnMe,#pav").forEach(el=>el.classList.toggle("tiene-estado",miE));
  drawList();
 }
 setInterval(cargarEstados,60000);
@@ -2473,9 +2615,9 @@ function estadosHtml(){
   const items=porUsuario.get(uid);
   const visto=items.every(e=>estadosVistos.has(e.id));
   const p=estadosUsers.get(uid)||{};
-  return `<button class="est-card${visto?" visto":""}" data-est="${uid}" type="button"><span class="est-ring">${avHtml({other:{id:uid,avatar_url:p.avatar_url},c:initial(p.display_name)},"52px")}</span><span>${esc(p.display_name||"Usuario")}</span></button>`;
+  return `<button class="est-card${visto?" visto":""}" data-est="${uid}" type="button"><span class="est-ring">${avHtml({other:{id:uid,avatar_url:p.avatar_url},c:initial(p.display_name)},"52px","",false)}</span><span>${esc(p.display_name||"Usuario")}</span></button>`;
  }).join("");
- const miTarjeta=mios.length?`<button class="est-card" data-est="${me.id}" type="button"><span class="est-ring">${avHtml({other:{id:me.id,avatar_url:me.photo},c:initial(me.name)},"52px")}</span><span>Mi estado</span></button>`:"";
+ const miTarjeta=mios.length?`<button class="est-card" data-est="${me.id}" type="button"><span class="est-ring">${avHtml({other:{id:me.id,avatar_url:me.photo},c:initial(me.name)},"52px","",false)}</span><span>Mi estado</span></button>`:"";
  return `<div class="estados"><button class="est-card" data-est-mio="1" type="button"><span class="est-mas">+</span><span>Añadir estado</span></button>${miTarjeta}${tarjetas}</div>`;
 }
 document.addEventListener("click",e=>{
@@ -2490,6 +2632,7 @@ document.addEventListener("click",e=>{
 
 function abrirVisor(uid){
  evUid=uid;
+ evOrden=ordenEstados();
  evItems=estados.filter(e=>e.user_id===uid);
  if(!evItems.length)return;
  evIdx=0;
@@ -2504,8 +2647,9 @@ function cerrarVisor(){
 function mostrarItem(){
  clearTimeout(evT);
  const e=evItems[evIdx];
- if(!e){cerrarVisor();return}
+ if(!e){evCambiarUsuario(1);return}
  const dur=(e.musica_yt||e.musica_path)?30000:5000;
+ evDur=dur;
  const p=estadosUsers.get(e.user_id)||{};
  const esMio=e.user_id===me.id;
  $("#ev-bars").innerHTML=evItems.map((x,i)=>`<div class="ev-bar"><i style="width:${i<evIdx?100:0}%"></i></div>`).join("");
@@ -2561,14 +2705,55 @@ function mostrarItem(){
  evT=setTimeout(()=>{evIdx++;mostrarItem()},dur);
 }
 $("#ev-cerrar").onclick=cerrarVisor;
-$("#ev-cont").onclick=e=>{
+// Gestos del visor: tocar (siguiente/anterior), deslizar lateral (estados), arriba (siguiente persona), abajo (cerrar), mantener (pausar)
+let evOrden=[],evDur=5000,evPausaRest=5000,evDownX=0,evDownY=0,evDownT=0;
+function ordenEstados(){
+ const ids=[...new Set(estados.map(e=>e.user_id))];
+ return ids.sort((a,b)=>(estadoVisto(a)?1:0)-(estadoVisto(b)?1:0));
+}
+function evBarra(){return $("#ev-bars").children[evIdx]?.querySelector("i")}
+function evPausar(){
+ const b=evBarra();if(!b)return;
  clearTimeout(evT);
- if(e.clientX<window.innerWidth/2)evIdx=Math.max(0,evIdx-1);
- else evIdx++;
- mostrarItem();
-};
+ const total=b.parentElement.clientWidth||1;
+ const pct=Math.min(1,parseFloat(getComputedStyle(b).width)/total);
+ b.style.transition="none";b.style.width=(pct*100)+"%";
+ evPausaRest=Math.max(200,evDur*(1-pct));
+}
+function evReanudar(){
+ const b=evBarra();if(!b)return;
+ void b.offsetWidth;
+ b.style.transition="width "+(evPausaRest/1000)+"s linear";
+ b.style.width="100%";
+ clearTimeout(evT);
+ evT=setTimeout(()=>{evIdx++;mostrarItem()},evPausaRest);
+}
+function evCambiarUsuario(delta){
+ const i=evOrden.indexOf(evUid);
+ for(let j=i+delta;j>=0&&j<evOrden.length;j+=delta){
+  const items=estados.filter(e=>e.user_id===evOrden[j]);
+  if(items.length){evUid=evOrden[j];evItems=items;evIdx=delta>0?0:items.length-1;mostrarItem();return}
+ }
+ cerrarVisor();
+}
+function evSiguiente(){evIdx++;if(evIdx>=evItems.length)evCambiarUsuario(1);else mostrarItem()}
+function evAnterior(){if(evIdx>0){evIdx--;mostrarItem()}else evCambiarUsuario(-1)}
+const evCont=$("#ev-cont");
+evCont.addEventListener("pointerdown",e=>{evDownX=e.clientX;evDownY=e.clientY;evDownT=Date.now();evPausar()});
+evCont.addEventListener("pointerup",e=>{
+ const dx=e.clientX-evDownX,dy=e.clientY-evDownY,held=Date.now()-evDownT;
+ clearTimeout(evT);
+ if(Math.abs(dy)>Math.abs(dx)&&dy>90){cerrarVisor();return}
+ if(Math.abs(dy)>Math.abs(dx)&&dy<-90){evCambiarUsuario(1);return}
+ if(dx<-50){evSiguiente();return}
+ if(dx>50){evAnterior();return}
+ if(held>=300){evReanudar();return}
+ if(e.clientX<window.innerWidth/2)evAnterior();else evSiguiente();
+});
+evCont.addEventListener("pointercancel",()=>evReanudar());
 
 function abrirComponer(){
+ estFotoPend=null;$("#est-foto-nombre").textContent="";
  $("#est-texto").value="";
  $("#est-yt").value="";
  estMusica=null;
@@ -2576,32 +2761,33 @@ function abrirComponer(){
  $("#estmodal").classList.add("on");
 }
 $("#est-cerrar").onclick=()=>$("#estmodal").classList.remove("on");
-$("#est-publicar").onclick=async()=>{
- const texto=$("#est-texto").value.trim();
- if(!texto)return toast("Escribe algo");
- const yt=ytIdDe($("#est-yt").value);
- if($("#est-yt").value.trim()&&!yt)return toast("Link de YouTube no válido");
- const musica=yt?null:await subirMusica();
- const {error}=await sb.from("estados").insert({user_id:me.id,tipo:"texto",texto,fondo:$("#est-fondo").value,musica_path:musica,musica_yt:yt});
- if(error)return toast("No se publicó: "+error.message);
- $("#estmodal").classList.remove("on");
- toast("Estado publicado");
- await cargarEstados();
-};
+let estFotoPend=null;
 $("#est-foto").onclick=()=>$("#est-file").click();
-$("#est-file").onchange=async e=>{
- const f=e.target.files[0];
- e.target.value="";
+$("#est-file").onchange=e=>{
+ const f=e.target.files[0];e.target.value="";
  if(!f)return;
  if(f.size>8*1024*1024)return toast("La foto supera 8 MB");
- const path="estados/"+me.id+"_"+Date.now()+".jpg";
- const {error:eUp}=await sb.storage.from("fotos").upload(path,f,{contentType:f.type||"image/jpeg"});
- if(eUp)return toast("No se pudo subir la foto: "+eUp.message);
+ estFotoPend=f;
+ $("#est-foto-nombre").textContent="Foto lista: "+f.name;
+};
+$("#est-publicar").onclick=async()=>{
+ const texto=$("#est-texto").value.trim();
+ if(!texto&&!estFotoPend)return toast("Escribe algo o elige una foto");
  const yt=ytIdDe($("#est-yt").value);
  if($("#est-yt").value.trim()&&!yt)return toast("Link de YouTube no válido");
  const musica=yt?null:await subirMusica();
- const {error}=await sb.from("estados").insert({user_id:me.id,tipo:"foto",foto_path:path,musica_path:musica,musica_yt:yt});
+ let fila;
+ if(estFotoPend){
+  const path="estados/"+me.id+"_"+Date.now()+".jpg";
+  const {error:eUp}=await sb.storage.from("fotos").upload(path,estFotoPend,{contentType:estFotoPend.type||"image/jpeg"});
+  if(eUp)return toast("No se pudo subir la foto: "+eUp.message);
+  fila={user_id:me.id,tipo:"foto",foto_path:path,musica_path:musica,musica_yt:yt};
+ }else{
+  fila={user_id:me.id,tipo:"texto",texto,fondo:$("#est-fondo").value,musica_path:musica,musica_yt:yt};
+ }
+ const {error}=await sb.from("estados").insert(fila);
  if(error)return toast("No se publicó: "+error.message);
+ estFotoPend=null;
  $("#estmodal").classList.remove("on");
  toast("Estado publicado");
  await cargarEstados();
@@ -2737,13 +2923,28 @@ $("#sdecir").onchange=e=>{
  decirNombre=e.target.checked;
  try{localStorage.setItem("cs_decir",decirNombre?"1":"0")}catch(err){}
 };
+let vozEs=null,vozDesbloqueada=false;
+function cargarVozEs(){
+ if(!("speechSynthesis" in window))return;
+ const vs=speechSynthesis.getVoices();
+ vozEs=vs.find(v=>/^es[-_]ES/i.test(v.lang))||vs.find(v=>/^es/i.test(v.lang))||null;
+}
+if("speechSynthesis" in window){cargarVozEs();speechSynthesis.onvoiceschanged=cargarVozEs}
+// El móvil exige un toque previo para hablar: lo desbloqueamos con el primer toque
+document.addEventListener("pointerdown",()=>{
+ if(vozDesbloqueada||!("speechSynthesis" in window))return;
+ vozDesbloqueada=true;
+ const u=new SpeechSynthesisUtterance("");u.volume=0;speechSynthesis.speak(u);
+});
 function decirLlamada(nombre){
  if(!decirNombre||!("speechSynthesis" in window))return;
  try{
-  const u=new SpeechSynthesisUtterance(nombre+" te está llamando");
-  u.lang="es-ES";
   speechSynthesis.cancel();
-  speechSynthesis.speak(u);
+  const u=new SpeechSynthesisUtterance((nombre||"Alguien")+" te está llamando");
+  u.lang="es-ES";u.rate=1;u.volume=1;
+  if(!vozEs)cargarVozEs();
+  if(vozEs)u.voice=vozEs;
+  setTimeout(()=>speechSynthesis.speak(u),150);
  }catch(e){console.warn("No se pudo decir el nombre:",e)}
 }
 
@@ -2761,7 +2962,7 @@ async function compartirPantalla(){
  if(!call||!call.pc){toast("Primero conecta la llamada");return}
  if(pantallaStream){pararCompartir();return}
  if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia){
-  toast("Este navegador no permite compartir pantalla");
+  toast("Tu navegador de móvil no permite compartir pantalla. Esto funciona en ordenador (Chrome o Edge).");
   return;
  }
  let s;
@@ -3061,21 +3262,16 @@ async function startCall(c,video){
 
 const llamadasVistas=new Set();
 const DEBUG_LLAMADAS=true; // diagnóstico temporal: muestra por qué no suena una llamada
-async function onCallInsert(r){
- const dbg=m=>{if(DEBUG_LLAMADAS)toast("[llamada] "+m)};
- dbg("recibida "+String(r.id).slice(0,6)+" · "+r.status+(r.caller_id===me.id?" · mía":""));
- if(llamadasVistas.has(r.id)){dbg("ya mostrada antes");return}
- if(r.caller_id===me.id){dbg("la hice yo");return}
- if(r.status!=="ringing"){dbg("estado "+r.status);return}
- if(call){dbg("ya hay una llamada en curso");return}
- if(incoming){dbg("ya hay una alerta abierta");return}
- if(saludoOnMio){dbg("bandeja de voz activa: no suena");return}
- llamadasVistas.add(r.id);
- let c=chats.find(x=>x.id===r.conversation_id);
- if(!c){await loadChats();c=chats.find(x=>x.id===r.conversation_id)}
- if(!c)c={id:r.conversation_id,n:"Llamada",c:"L",isGroup:false};
- if(call||incoming){dbg("ocupado tras cargar");return}
- dbg("mostrando alerta");
+const dbgVistos=new Set();
+function dbgLlamada(id,m){
+ if(!DEBUG_LLAMADAS)return;
+ const k=id+m;
+ if(dbgVistos.has(k))return;
+ dbgVistos.add(k);
+ toast("[llamada] "+m);
+}
+// Muestra la alerta de llamada entrante (sin esperas, para que nunca se quede a medias)
+function mostrarAlertaEntrante(c,r){
  incoming={row:r,c,t:setTimeout(hideIncoming,40000)};
  $("#incav").textContent=c.c;$("#incav").className="av "+(c.isGroup?"r":"");
  $("#incn").textContent=c.n;
@@ -3083,8 +3279,36 @@ async function onCallInsert(r){
  $("#inc").classList.add("on");
  if(!silenciados.includes(c.id)&&!enDND()){startRing();notifyCall(c,r)}
  ultimaEntrante={c,r};
- if(!silenciados.includes(c.id)&&!enDND())decirLlamada(c.n);
+ if(!silenciados.includes(c.id)&&!enDND()){try{decirLlamada(c.n)}catch(e){console.warn(e)}}
  anotarPerdida(c,r);
+}
+function onCallInsert(r){
+ try{
+  const id=r.id;
+  dbgLlamada(id,"recibida · "+r.status+(r.caller_id===me.id?" · mía":""));
+  if(llamadasVistas.has(id))return;
+  if(r.caller_id===me.id)return;
+  if(r.status!=="ringing"){dbgLlamada(id,"estado "+r.status);return}
+  if(call){dbgLlamada(id,"hay una llamada en curso (call)");return}
+  if(incoming){dbgLlamada(id,"ya hay una alerta abierta");return}
+  if(saludoOnMio){dbgLlamada(id,"bandeja de voz activa: no suena");return}
+  llamadasVistas.add(id);
+  const c=chats.find(x=>x.id===r.conversation_id);
+  if(c){mostrarAlertaEntrante(c,r);return}
+  const provisional={id:r.conversation_id,n:"Llamada",c:"L",isGroup:false};
+  mostrarAlertaEntrante(provisional,r);
+  loadChats().then(()=>{
+   const real=chats.find(x=>x.id===r.conversation_id);
+   if(real&&incoming&&incoming.row.id===id){
+    incoming.c=real;
+    $("#incn").textContent=real.n;
+    $("#incav").textContent=real.c;
+   }
+  }).catch(()=>{});
+ }catch(err){
+  dbgLlamada(r.id,"error: "+(err&&err.message||err));
+  console.error(err);
+ }
 }
 function hideIncoming(){
  if(incoming)clearTimeout(incoming.t);
