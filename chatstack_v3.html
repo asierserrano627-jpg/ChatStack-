@@ -320,6 +320,16 @@ body:has(.app.chat) .fab{display:none}
 .est-card.visto .est-ring{border-color:#777}
 .est-mas{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#c8102e,#111);color:#fff;display:grid;place-items:center;font-size:30px}
 #est-texto{min-height:80px;font-family:inherit}
+.dot-on{display:inline-block;width:9px;height:9px;border-radius:50%;background:#2ecc71;margin-left:6px;vertical-align:middle}
+.sol{padding:10px 12px;margin:6px 12px;background:var(--panel2);border-radius:12px;display:flex;flex-direction:column;gap:8px}
+.sol-txt{font-size:14px;color:var(--txt)}
+.sol-btns{display:flex;gap:8px}
+.sol-btns button{flex:1}
+
+html[data-tema="azul"]{color-scheme:light;--bg:#eef4ff;--panel:#ffffff;--panel2:#dbe7ff;--line:#c3d6f5;--txt:#0b2545;--mute:#4b6080}
+html[data-tema="azul"] .btn{background:#1d6fe0;color:#fff}
+html[data-tema="azul"] .btn-a{background:#dbe7ff;color:#0b2545}
+html[data-tema="azul"] .m.out{background:#1d6fe0;color:#fff}
 </style>
 </head>
 <body>
@@ -385,6 +395,7 @@ body:has(.app.chat) .fab{display:none}
  <div class="cself" id="cself" hidden><video id="lvid" muted autoplay playsinline></video></div>
  <div class="cbtns">
   <button class="cb" id="cmic" aria-label="Micrófono"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></button>
+  <button class="cb" id="cshare" aria-label="Compartir pantalla"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></button>
   <button class="cb end" id="cend" aria-label="Colgar"><svg viewBox="0 0 24 24"><path d="M3 14c4-4 14-4 18 0l-2 3-4-1v-2c-2-1-6-1-8 0v2l-4 1z"/></svg></button>
   <button class="cb" id="ccam" aria-label="Cámara"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="M16 10l5-3v10l-5-3"/></svg></button>
  </div>
@@ -439,6 +450,9 @@ body:has(.app.chat) .fab{display:none}
   <div class="srow"><input class="fld" type="time" id="sdesde" value="23:00"><input class="fld" type="time" id="shasta" value="08:00"></div>
   <label class="ajlbl"><input type="checkbox" id="socultar"> No enviar confirmación de lectura</label>
   <label class="ajlbl"><input type="checkbox" id="sfotopriv"> Mi foto de perfil solo para contactos</label>
+  <label class="ajlbl" for="stema">Tema de la app (solo en este móvil)</label>
+  <select class="fld" id="stema"><option value="azul">Blanco y azul</option><option value="negro">Negro</option></select>
+  <label class="ajlbl"><input type="checkbox" id="sdecir"> Decir el nombre de quien te llama</label>
   <label class="ajlbl"><input type="checkbox" id="svoz"> Activar bandeja de voz (quien te llame escucha tu mensaje y la llamada se corta sola)</label>
   <button class="btn-a" id="sgrabar" type="button">Grabar mensaje</button>
   <small id="sestado" class="ajlbl"></small>
@@ -515,11 +529,24 @@ body:has(.app.chat) .fab{display:none}
   <b>Nuevo estado</b>
   <textarea class="fld" id="est-texto" placeholder="Escribe algo" maxlength="200" rows="3"></textarea>
   <select class="fld" id="est-fondo"><option value="#c8102e">Rojo</option><option value="#111113">Negro</option><option value="#0b3d91">Azul</option><option value="#0f6b3a">Verde</option></select>
+  <button class="btn-a" id="est-musica" type="button">Añadir música</button>
+  <small id="est-musica-nombre"></small>
+  <input type="file" id="est-musica-file" accept="audio/*" hidden>
   <button class="btn" id="est-publicar" type="button">Publicar texto</button>
   <button class="btn-a" id="est-foto" type="button">Publicar foto</button>
   <input type="file" id="est-file" accept="image/*" hidden>
   <button class="link" id="est-cerrar" type="button">Cancelar</button>
  </div>
+</div>
+<div class="cmodal" id="estlist" role="dialog" aria-modal="true">
+ <div class="cbox vbox">
+  <b>Estados</b>
+  <div id="estlist-body" style="width:100%"></div>
+  <button class="link" id="estlist-cerrar" type="button">Cerrar</button>
+ </div>
+</div>
+<div class="cmodal" id="chmodal" role="dialog" aria-modal="true">
+ <div class="cbox vbox" id="chmodal-body"></div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <script>
@@ -557,7 +584,7 @@ function avHtml(c,size="44px",cls=""){
  const oid=c.other?.id;
  const ocultar=!!oid&&oid!==me.id&&privadas.has(oid)&&!contacts.some(x=>x.id===oid);
  const url=ocultar?null:c.other?.avatar_url;
- return `<div class="av ${cls}" style="width:${size};height:${size};${url?`background:center/cover no-repeat url("${esc(url)}")`:""}">${url?"":esc(c.c)}</div>`;
+ return `<div class="av ${cls}" style="position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;width:${size};height:${size}">${esc(c.c||"")}${url?`<img src="${esc(url)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.remove()">`:""}</div>`;
 }
 function setErr(t,kind="err"){
  const el=$("#aerr");
@@ -649,7 +676,7 @@ async function loadChats(){
  let others=[];
  if(ids.length){
   const res=await sb.from("conversation_members")
-   .select("conversation_id,user_id,last_read_at,profiles(id,display_name,avatar_url,status)")
+   .select("conversation_id,user_id,last_read_at,profiles(id,display_name,avatar_url,status,last_seen)")
    .in("conversation_id",ids);
   others=res.data||[];
  }
@@ -788,6 +815,11 @@ function renderChat(c){
  $(".ch .who").onclick=()=>verPerfil(c);
  $("#ms").oncontextmenu=e=>{const b=e.target.closest(".m[data-id]");if(!b)return;e.preventDefault();const m=c.m.find(z=>z.id===b.dataset.id);if(m)accionesMensaje(c,m)};
   pintarAncla(c);
+ const cab=document.querySelector(".ch");
+ if(cab&&!cab.querySelector("#chmenu")){
+  cab.insertAdjacentHTML("beforeend",'<button class="ic" id="chmenu" type="button" aria-label="Opciones del chat"><svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="5" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="19" r="2" fill="currentColor"/></svg></button>');
+ }
+ $("#chmenu").onclick=()=>abrirMenuChat(c);
  $("#inp").addEventListener("contextmenu",e=>{e.preventDefault();programarMensaje(c)});
  abrirEscritura(c);
  $("#stk").onclick=e=>{
@@ -833,7 +865,7 @@ function drawList(){
  chats.sort((a,b)=>(b.lastAt||"")>(a.lastAt||"")?1:-1);
  const rows=chats
   .filter(c=>(carpetaActual==="Archivados"?archivados.includes(c.id):!archivados.includes(c.id)&&(carpetaActual==="Todos"||carpetas[c.id]===carpetaActual))&&!ocultos.includes(c.id)&&!(c.other&&bloqueados.has(c.other.id))&&c.n.toLowerCase().includes(q)&&(filter==="Todos"||(filter==="No leídos"&&c.u>0)||(filter==="Grupos"&&c.isGroup)))
-  .map(c=>`<button class="row ${curId===c.id?"on":""}" data-id="${c.id}">${avHtml(c,"44px",c.isGroup?"r":"")}<div class="mid"><div class="l1"><span class="nm">${esc(c.n)}${silenciados.includes(c.id)?"<svg viewBox='0 0 24 24' width='13' height='13' style='vertical-align:-2px'><path d='M3 3l18 18M6 9a6 6 0 0 1 10-4' stroke='#c8102e' stroke-width='2.4' fill='none'/></svg>":""}</span><span class="tm ${c.u?"u":""}">${c.t}</span></div><div class="l2"><span class="pv">${esc(c.last)}</span>${c.u?`<span class="bd">${c.u}</span>`:""}</div></div></button>`)
+  .map(c=>`<button class="row ${curId===c.id?"on":""}" data-id="${c.id}">${avHtml(c,"44px",c.isGroup?"r":"")}<div class="mid"><div class="l1"><span class="nm">${esc(c.n)}${enLineaChat(c)?'<span class="dot-on"></span>':""}${silenciados.includes(c.id)?"<svg viewBox='0 0 24 24' width='13' height='13' style='vertical-align:-2px'><path d='M3 3l18 18M6 9a6 6 0 0 1 10-4' stroke='#c8102e' stroke-width='2.4' fill='none'/></svg>":""}</span><span class="tm ${c.u?"u":""}">${c.t}</span></div><div class="l2"><span class="pv">${esc(c.last)}</span>${c.u?`<span class="bd">${c.u}</span>`:""}</div></div></button>`)
   .join("");
  const ppl=q?people.filter(p=>!chats.some(c=>c.other?.id===p.id)).map(p=>
   `<button class="row" data-p="${p.id}">${avHtml({other:p,c:initial(p.display_name)},"44px")}<div class="mid"><div class="l1"><span class="nm">${esc(p.display_name)}</span></div><div class="l2"><span class="pv">${esc(p.status||"")}</span></div></div></button>`).join(""):"";
@@ -842,7 +874,7 @@ function drawList(){
  const cts=ctsFilt.map(p=>`<button class="row" data-p="${p.id}">${avHtml({other:p,c:initial(p.display_name)},"44px")}<div class="mid"><div class="l1"><span class="nm">${esc(contactAlias[p.id]||p.display_name||"Usuario")}</span></div><div class="l2"><span class="pv">${esc(p.status||"")}</span></div></div></button>`).join("");
  const headC=cts?`<div style="padding:10px 14px 4px;color:var(--mute);font-size:12.5px">Contactos</div>`:"";
  const pHtml=perdidas.length&&!q?`<div style="padding:10px 14px 4px;color:var(--mute);font-size:12.5px">Llamadas perdidas</div>`+perdidas.slice().reverse().map(x=>`<button class="row" data-devolver="${esc(x.convId)}"><div class="mid"><div class="l1"><span class="nm">${esc(x.name)}</span></div><div class="l2"><span class="pv">${x.kind==="video"?"Videollamada":"Llamada de voz"} · ${new Date(x.at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span></div></div><span class="pv" style="color:#c8102e">Devolver</span></button>`).join(""):"";
- list.innerHTML=(estadosHtml()+barraCarpetas()+pHtml+rows+headC+cts+head+ppl)||'<div class="empty">Aún no tienes chats. Busca a alguien por nombre para empezar.</div>';
+ list.innerHTML=(solHtml()+barraCarpetas()+pHtml+rows+headC+cts+head+ppl)||'<div class="empty">Aún no tienes chats. Busca a alguien por nombre para empezar.</div>';
 }
 
 async function startChatWith(uid){
@@ -1028,18 +1060,14 @@ $("#fabContacto").onclick=()=>{
 };
 async function addContact(p){
  const btn=$("#cadd");
- btn.disabled=true;
- const {error}=await sb.rpc("add_contact",{other_user:p.id});
+ if(btn)btn.disabled=true;
+ const {error}=await sb.from("solicitudes_contacto").insert({de:me.id,para:p.id});
  if(error){
-  btn.disabled=false;
-  $("#cres").textContent=error.code==="23505"?"Ya está en tus contactos.":"No se pudo añadir: "+error.message;
+  if(btn)btn.disabled=false;
+  $("#cres").textContent=error.code==="23505"?"Ya enviaste una solicitud a esta persona.":"No se pudo enviar: "+error.message;
   return;
  }
- const {error:errChat}=await sb.rpc("start_direct_conversation",{other_user:p.id});
- if(errChat)console.warn("No se creó el chat:",errChat.message);
- $("#cres").textContent=(p.display_name||"Usuario")+" añadido a tus contactos.";
- loadContacts();
- loadChats();
+ $("#cres").textContent="Solicitud enviada a "+(p.display_name||"esta persona")+".";
 }
 $("#ccerrar").onclick=()=>{pararEscaner();$("#cmodal").classList.remove("on")};
 $("#cnum").addEventListener("focus",e=>{const l=e.target.value.length;e.target.setSelectionRange(l,l)});
@@ -1254,11 +1282,25 @@ async function verPerfil(c){
  $("#vp-body").insertAdjacentHTML("beforeend",`<button class="btn-a" id="vp-bloq" type="button">${bloqueados.has(p.id)?"Desbloquear":"Bloquear"}</button><button class="link" id="vp-den" type="button">Denunciar</button>`);
  $("#vp-bloq").onclick=()=>toggleBloqueo(p);
  $("#vp-den").onclick=()=>denunciar(p.id,null);
+ if(contacts.some(x=>x.id===p.id)){
+  $("#vp-body").insertAdjacentHTML("beforeend",'<button class="btn-a" id="vp-apodo" type="button">Cambiar apodo</button>');
+  $("#vp-apodo").onclick=async()=>{
+   const nuevo=prompt("Apodo (solo lo verás tú):",contactAlias[p.id]||p.display_name||"");
+   if(nuevo===null)return;
+   const alias=nuevo.trim().slice(0,40)||null;
+   const {error}=await sb.from("contacts").update({alias}).eq("owner_id",me.id).eq("contact_id",p.id);
+   if(error)return toast(error.message);
+   if(alias)contactAlias[p.id]=alias;else delete contactAlias[p.id];
+   await loadChats();
+   drawList();
+   toast("Apodo guardado");
+  };
+ }
  $("#vmodal").classList.add("on");
 }
 async function addContactDirecto(p){
- const {error}=await sb.rpc("add_contact",{other_user:p.id});
- if(error)return toast(error.message);
+ const {error}=await sb.from("solicitudes_contacto").insert({de:me.id,para:p.id});
+ if(error)return toast(error.code==="23505"?"Ya enviaste una solicitud a esta persona":error.message);
  $("#vmodal").classList.remove("on");
  toast("Añadido a tus contactos");
  await loadContacts();
@@ -2165,7 +2207,7 @@ function reproducirSaludoDe(c){
 let estados=[],estadosUsers=new Map(),estadosVistos=new Set();
 let evItems=[],evIdx=0,evT=null,evUid=null;
 async function cargarEstados(){
- const {data,error}=await sb.from("estados").select("id,user_id,tipo,texto,foto_path,fondo,created_at,expira_at").gt("expira_at",new Date().toISOString()).order("created_at",{ascending:true});
+ const {data,error}=await sb.from("estados").select("id,user_id,tipo,texto,foto_path,fondo,created_at,expira_at,musica_path").gt("expira_at",new Date().toISOString()).order("created_at",{ascending:true});
  if(error){console.warn("No se cargaron los estados:",error.message);return}
  estados=data||[];
  const ids=[...new Set(estados.map(e=>e.user_id))];
@@ -2212,6 +2254,7 @@ function abrirVisor(uid){
 }
 function cerrarVisor(){
  clearTimeout(evT);
+ detenerMusica();
  $("#evmodal").classList.remove("on");
 }
 function mostrarItem(){
@@ -2231,6 +2274,13 @@ function mostrarItem(){
  }else{
   cont.style.background=e.fondo||"#c8102e";
   cont.innerHTML=`<p>${esc(e.texto||"")}</p>`;
+ }
+ detenerMusica();
+ if(e.musica_path){
+  const {data:mu}=sb.storage.from("audios").getPublicUrl(e.musica_path);
+  musicaVisor=new Audio(mu.publicUrl);
+  musicaVisor.loop=true;
+  musicaVisor.play().catch(err=>console.warn("Música no reproducida:",err));
  }
  const barra=$("#ev-bars").children[evIdx]?.querySelector("i");
  requestAnimationFrame(()=>{
@@ -2271,13 +2321,16 @@ $("#ev-cont").onclick=e=>{
 
 function abrirComponer(){
  $("#est-texto").value="";
+ estMusica=null;
+ $("#est-musica-nombre").textContent="";
  $("#estmodal").classList.add("on");
 }
 $("#est-cerrar").onclick=()=>$("#estmodal").classList.remove("on");
 $("#est-publicar").onclick=async()=>{
  const texto=$("#est-texto").value.trim();
  if(!texto)return toast("Escribe algo");
- const {error}=await sb.from("estados").insert({user_id:me.id,tipo:"texto",texto,fondo:$("#est-fondo").value});
+ const musica=await subirMusica();
+ const {error}=await sb.from("estados").insert({user_id:me.id,tipo:"texto",texto,fondo:$("#est-fondo").value,musica_path:musica});
  if(error)return toast("No se publicó: "+error.message);
  $("#estmodal").classList.remove("on");
  toast("Estado publicado");
@@ -2292,11 +2345,217 @@ $("#est-file").onchange=async e=>{
  const path="estados/"+me.id+"_"+Date.now()+".jpg";
  const {error:eUp}=await sb.storage.from("fotos").upload(path,f,{contentType:f.type||"image/jpeg"});
  if(eUp)return toast("No se pudo subir la foto: "+eUp.message);
- const {error}=await sb.from("estados").insert({user_id:me.id,tipo:"foto",foto_path:path});
+ const musica=await subirMusica();
+ const {error}=await sb.from("estados").insert({user_id:me.id,tipo:"foto",foto_path:path,musica_path:musica});
  if(error)return toast("No se publicó: "+error.message);
  $("#estmodal").classList.remove("on");
  toast("Estado publicado");
  await cargarEstados();
+};
+
+// ---------- Botón de estados (círculo de arriba) ----------
+$("#btnE").onclick=async()=>{
+ await cargarEstados();
+ $("#estlist-body").innerHTML=estadosHtml();
+ $("#estlist").classList.add("on");
+};
+$("#estlist-cerrar").onclick=()=>$("#estlist").classList.remove("on");
+
+// ---------- Solicitudes de contacto, conexión y menú del chat ----------
+let solicitudes=[];
+async function cargarSolicitudes(){
+ const {data,error}=await sb.from("solicitudes_contacto").select("de,created_at").eq("para",me.id).order("created_at",{ascending:false});
+ if(error){console.warn("No se cargaron solicitudes:",error.message);return}
+ const ids=(data||[]).map(s=>s.de);
+ let perfs=[];
+ if(ids.length){
+  const r=await sb.from("profiles").select("id,display_name,avatar_url").in("id",ids);
+  perfs=r.data||[];
+ }
+ solicitudes=(data||[]).map(s=>({de:s.de,p:perfs.find(x=>x.id===s.de)||{id:s.de,display_name:"Usuario"}}));
+ drawList();
+}
+function solHtml(){
+ if(!solicitudes.length)return "";
+ return solicitudes.map(s=>`<div class="sol"><div class="sol-txt"><b>${esc(s.p.display_name||"Usuario")}</b> te quiere añadir</div><div class="sol-btns"><button class="btn" data-sol-ok="${s.de}" type="button">Aceptar</button><button class="btn-a" data-sol-no="${s.de}" type="button">Rechazar</button></div></div>`).join("");
+}
+document.addEventListener("click",async e=>{
+ const ok=e.target.closest("[data-sol-ok]");
+ const no=e.target.closest("[data-sol-no]");
+ if(!ok&&!no)return;
+ const de=ok?ok.dataset.solOk:no.dataset.solNo;
+ if(ok){
+  const {error}=await sb.rpc("add_contact",{other_user:de});
+  if(error)return toast("No se pudo aceptar: "+error.message);
+  await sb.rpc("start_direct_conversation",{other_user:de});
+ }
+ await sb.from("solicitudes_contacto").delete().eq("para",me.id).eq("de",de);
+ toast(ok?"Contacto añadido":"Solicitud rechazada");
+ await cargarSolicitudes();
+ await loadContacts();
+ await loadChats();
+});
+
+function enLineaChat(c){
+ const p=c.other;
+ if(!p||c.isGroup||!p.last_seen)return false;
+ return Date.now()-new Date(p.last_seen).getTime()<120000;
+}
+
+function cerrarMenuChat(){$("#chmodal").classList.remove("on")}
+function abrirMenuChat(c){
+ $("#chmodal-body").innerHTML=`<b>${esc(c.n)}</b>
+  <button class="btn-a" id="cm-sil" type="button">${silenciados.includes(c.id)?"Quitar silencio":"Silenciar"}</button>
+  <button class="btn-a" id="cm-arch" type="button">${archivados.includes(c.id)?"Desarchivar":"Archivar"}</button>
+  <button class="btn-a" id="cm-borrar" type="button">Borrar de mi lista</button>
+  <button class="btn-a" id="cm-captura" type="button">Enviar captura de pantalla</button>
+  <button class="link" id="cm-cerrar" type="button">Cerrar</button>`;
+ $("#chmodal").classList.add("on");
+ $("#cm-cerrar").onclick=cerrarMenuChat;
+ $("#cm-sil").onclick=()=>{cerrarMenuChat();toggleSilencio(c.id)};
+ $("#cm-arch").onclick=()=>{
+  if(archivados.includes(c.id))archivados=archivados.filter(x=>x!==c.id);
+  else archivados.push(c.id);
+  guardarArchivados();
+  drawList();
+  cerrarMenuChat();
+  toast(archivados.includes(c.id)?"Chat archivado":"Chat devuelto a tu lista");
+ };
+ $("#cm-borrar").onclick=()=>{
+  if(!confirm("¿Borrar este chat de tu lista?"))return;
+  ocultos.push(c.id);
+  try{localStorage.setItem("cs_ocultos",JSON.stringify(ocultos))}catch(e){}
+  cerrarMenuChat();
+  drawList();
+  leaveChat();
+  toast("Chat borrado de tu lista");
+ };
+ $("#cm-captura").onclick=()=>{cerrarMenuChat();capturarPantalla(c)};
+}
+async function capturarPantalla(c){
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia)return toast("Este navegador no permite capturar la pantalla");
+ let stream;
+ try{stream=await navigator.mediaDevices.getDisplayMedia({video:true})}
+ catch(err){return toast("Captura cancelada")}
+ try{
+  const v=document.createElement("video");
+  v.srcObject=stream;
+  v.muted=true;
+  await v.play();
+  await new Promise(r=>setTimeout(r,300));
+  const canvas=document.createElement("canvas");
+  canvas.width=v.videoWidth;
+  canvas.height=v.videoHeight;
+  canvas.getContext("2d").drawImage(v,0,0);
+  const blob=await new Promise(r=>canvas.toBlob(r,"image/jpeg",0.85));
+  const path="chats/"+me.id+"_"+Date.now()+".jpg";
+  const {error:eUp}=await sb.storage.from("fotos").upload(path,blob,{contentType:"image/jpeg"});
+  if(eUp)return toast("No se pudo subir la captura: "+eUp.message);
+  await send(c,{kind:"image",media_path:path});
+ }catch(err){
+  toast("No se pudo capturar: "+err.message);
+ }finally{
+  stream.getTracks().forEach(t=>t.stop());
+ }
+}
+
+// ---------- Tema y aviso por voz del nombre ----------
+function aplicarTema(){
+ const t=localStorage.getItem("cs_tema")||"azul";
+ document.documentElement.dataset.tema=t;
+ $("#stema").value=t;
+}
+$("#stema").onchange=e=>{
+ try{localStorage.setItem("cs_tema",e.target.value)}catch(err){}
+ aplicarTema();
+};
+aplicarTema();
+
+let decirNombre=localStorage.getItem("cs_decir")==="1";
+$("#sdecir").checked=decirNombre;
+$("#sdecir").onchange=e=>{
+ decirNombre=e.target.checked;
+ try{localStorage.setItem("cs_decir",decirNombre?"1":"0")}catch(err){}
+};
+function decirLlamada(nombre){
+ if(!decirNombre||!("speechSynthesis" in window))return;
+ try{
+  const u=new SpeechSynthesisUtterance(nombre+" te está llamando");
+  u.lang="es-ES";
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+ }catch(e){console.warn("No se pudo decir el nombre:",e)}
+}
+
+// ---------- Compartir pantalla y música en estados ----------
+let pantallaStream=null;
+async function renegociar(){
+ try{
+  const pc=call.pc;
+  const offer=await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  sendSig({t:"offer",sdp:{type:offer.type,sdp:offer.sdp}});
+ }catch(err){console.warn("No se pudo renegociar:",err)}
+}
+async function compartirPantalla(){
+ if(!call||!call.pc){toast("Primero conecta la llamada");return}
+ if(pantallaStream){pararCompartir();return}
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia){
+  toast("Este navegador no permite compartir pantalla");
+  return;
+ }
+ let s;
+ try{s=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false})}
+ catch(err){toast("Compartir cancelado");return}
+ pantallaStream=s;
+ const track=s.getVideoTracks()[0];
+ track.onended=()=>pararCompartir();
+ const pc=call.pc;
+ const sender=pc.getSenders().find(x=>x.track&&x.track.kind==="video");
+ if(sender)await sender.replaceTrack(track);
+ else pc.addTrack(track,s);
+ $("#cshare")?.classList.add("on");
+ toast("Compartiendo pantalla");
+}
+async function pararCompartir(){
+ if(!pantallaStream)return;
+ const track=pantallaStream.getVideoTracks()[0];
+ pantallaStream.getTracks().forEach(t=>t.stop());
+ pantallaStream=null;
+ const pc=call&&call.pc;
+ if(pc){
+  const sender=pc.getSenders().find(x=>x.track===track);
+  if(sender){
+   if(call.kind==="video"&&call.stream){
+    const cam=call.stream.getVideoTracks()[0]||null;
+    await sender.replaceTrack(cam);
+   }else pc.removeTrack(sender);
+  }
+ }
+ $("#cshare")?.classList.remove("on");
+}
+$("#cshare").onclick=compartirPantalla;
+
+// Música en los estados
+let estMusica=null;
+let musicaVisor=null;
+function detenerMusica(){
+ if(musicaVisor){musicaVisor.pause();musicaVisor=null}
+}
+async function subirMusica(){
+ if(!estMusica)return null;
+ if(estMusica.size>10*1024*1024){toast("La música supera 10 MB");return null}
+ const path="musica/"+me.id+"_"+Date.now()+".mp3";
+ const {error}=await sb.storage.from("audios").upload(path,estMusica,{contentType:estMusica.type||"audio/mpeg"});
+ if(error){toast("No se subió la música: "+error.message);return null}
+ estMusica=null;
+ return path;
+}
+$("#est-musica").onclick=()=>$("#est-musica-file").click();
+$("#est-musica-file").onchange=e=>{
+ estMusica=e.target.files[0]||null;
+ e.target.value="";
+ $("#est-musica-nombre").textContent=estMusica?estMusica.name:"";
 };
 
 // ---------- Tiempo real ----------
@@ -2313,6 +2572,8 @@ function subscribe(){
   .on("postgres_changes",{event:"UPDATE",schema:"public",table:"calls"},p=>onCallRow(p.new))
   .on("postgres_changes",{event:"UPDATE",schema:"public",table:"profiles"},async()=>{await Promise.all([loadChats(),loadContacts(),loadPrivadas()]);refrescarMensajes()})
   .on("postgres_changes",{event:"*",schema:"public",table:"contacts",filter:"owner_id=eq."+me.id},()=>loadContacts())
+  .on("postgres_changes",{event:"*",schema:"public",table:"estados"},()=>cargarEstados())
+  .on("postgres_changes",{event:"*",schema:"public",table:"solicitudes_contacto"},()=>cargarSolicitudes())
   .on("postgres_changes",{event:"*",schema:"public",table:"blocks",filter:"blocker_id=eq."+me.id},()=>loadBloqueos())
   .on("postgres_changes",{event:"*",schema:"public",table:"conversations"},async()=>{await loadChats();refrescarMensajes()})
   .subscribe();
@@ -2354,7 +2615,7 @@ async function manejarSesion(session){
   if(!started){
    started=true;
    try{
-    await Promise.all([loadProfile(session.user.user_metadata),loadChats(),loadContacts(),loadBloqueos(),loadPrivadas(),loadCodigosGrupos(),loadSaludo(),cargarEstados()]);
+    await Promise.all([loadProfile(session.user.user_metadata),loadChats(),loadContacts(),loadBloqueos(),loadPrivadas(),loadCodigosGrupos(),loadSaludo(),cargarEstados(),cargarSolicitudes()]);
     suscribirPush();
     latido();
     subscribe();
@@ -2417,7 +2678,10 @@ function makePeer(){
  pc.onicecandidate=e=>{if(e.candidate)sendSig({t:"ice",c:e.candidate.toJSON()})};
  pc.ontrack=e=>{
   const s=e.streams[0];
-  if(call.kind==="video")$("#rvid").srcObject=s;
+  if(e.track.kind==="video"){
+   $("#rvid").srcObject=s;
+   $("#rvid").style.display="block";
+  }else if(call.kind==="video")$("#rvid").srcObject=s;
   else $("#raud").srcObject=s;
  };
  pc.onconnectionstatechange=()=>{
@@ -2437,7 +2701,16 @@ async function flushIce(){
 async function onSignal(m){
  if(!call)return;
  try{
-  if(m.t==="ready"&&call.role==="caller"){
+  if(call.startedAt&&call.pc&&m.t==="offer"&&call.pc.signalingState==="stable"){
+   await call.pc.setRemoteDescription(m.sdp);
+   const ans=await call.pc.createAnswer();
+   await call.pc.setLocalDescription(ans);
+   sendSig({t:"answer",sdp:{type:ans.type,sdp:ans.sdp}});
+  }
+  else if(call.startedAt&&call.pc&&m.t==="answer"&&call.pc.signalingState==="have-local-offer"){
+   await call.pc.setRemoteDescription(m.sdp);
+  }
+  else if(m.t==="ready"&&call.role==="caller"){
    call.pc=makePeer();
    const offer=await call.pc.createOffer();
    await call.pc.setLocalDescription(offer);
@@ -2462,6 +2735,7 @@ async function onSignal(m){
  }catch(err){console.warn(err);toast("Error de conexión en la llamada")}
 }
 function onConnected(){
+ if(call&&call.pc)call.pc.onnegotiationneeded=renegociar;
  if(saludoAudio){saludoAudio.pause();saludoAudio=null}
  quitarPerdida(call.id);
  if(call.ringT){clearTimeout(call.ringT);call.ringT=null}
@@ -2529,6 +2803,7 @@ function onCallInsert(r){
  $("#inc").classList.add("on");
  if(!silenciados.includes(c.id)&&!enDND()){startRing();notifyCall(c,r)}
  ultimaEntrante={c,r};
+ if(!silenciados.includes(c.id)&&!enDND())decirLlamada(c.n);
  anotarPerdida(c,r);
 }
 function hideIncoming(){
