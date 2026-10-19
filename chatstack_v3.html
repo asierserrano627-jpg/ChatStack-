@@ -303,7 +303,6 @@ body:has(.app.chat) .fab{display:none}
   <input class="fld" id="ausuario" placeholder="Usuario" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false">
   <input class="fld" id="aphone" type="tel" placeholder="Número de teléfono" autocomplete="tel" inputmode="tel" hidden>
   <input class="fld" id="apass" type="password" placeholder="Contraseña" autocomplete="current-password">
-  <div class="cf" id="acap"></div>
   <div id="aerr" role="alert" hidden></div>
   <button class="btn" id="abtn" type="submit">Iniciar sesión</button>
   <button class="link" id="atog" type="button">¿Nuevo aquí? Crear cuenta</button>
@@ -412,7 +411,7 @@ body:has(.app.chat) .fab{display:none}
   <label class="ajlbl"><input type="checkbox" id="socultar"> No enviar confirmación de lectura</label>
   <label class="ajlbl"><input type="checkbox" id="sfotopriv"> Mi foto de perfil solo para contactos</label>
   <label class="ajlbl"><input type="checkbox" id="svoz"> Activar bandeja de voz (quien te llame escucha tu mensaje y la llamada se corta sola)</label>
-  <button class="btn-a" id="sgrabar" type="button">Grabar mensaje (5 s)</button>
+  <button class="btn-a" id="sgrabar" type="button">Grabar mensaje</button>
   <small id="sestado" class="ajlbl"></small>
   <button class="btn-a" id="sborrarsaludo" type="button">Borrar saludo</button>
   <label class="ajlbl"><input type="checkbox" id="svibrar"> Vibrar en llamadas y mensajes</label>
@@ -902,22 +901,7 @@ $("#blogout").onclick=async()=>{
  location.reload();
 };
 
-// ---------- Acceso (usuario + contraseña + captcha) ----------
-const TURNSTILE_SITE_KEY="0x4AAAAAAFaSv7o0b685TYIp"; // sustituir por tu site key de Cloudflare
-const AUTH_DOMAIN="@chatstack.app";
-let captchaToken=null,captchaId=null;
-window.onTurnstileLoad=()=>{
- captchaId=turnstile.render("#acap",{
-  sitekey:TURNSTILE_SITE_KEY,
-  callback:t=>{captchaToken=t},
-  "expired-callback":()=>{captchaToken=null},
-  "error-callback":()=>{captchaToken=null}
- });
-};
-function resetCaptcha(){
- captchaToken=null;
- if(window.turnstile&&captchaId!==null)turnstile.reset(captchaId);
-}
+// ---------- Acceso (usuario + contraseña) ----------
 $("#atog").onclick=()=>{
  reg=!reg;setErr("");
  $("#aphone").hidden=!reg;
@@ -932,15 +916,14 @@ $("#af").onsubmit=async e=>{
  const telefono=normalizarTelefono($("#aphone").value);
  if(password.length<6)return setErr("La contraseña debe tener al menos 6 caracteres.");
  if(reg&&!/^\+\d{8,15}$/.test(telefono))return setErr("Escribe un número de teléfono válido (entre 9 y 15 cifras).");
- if(!captchaToken)return setErr("Completa el captcha antes de continuar.");
  setErr("");
- const email=usuario+AUTH_DOMAIN,token=captchaToken;
+ const email=usuario+AUTH_DOMAIN;
  btn.disabled=true;btn.textContent="Espera…";
  try{
   if(reg){
    const {data:libre}=await sb.rpc("telefono_libre",{p:telefono});
    if(libre===false)throw new Error("Ese número de teléfono ya está registrado en otra cuenta.");
-   const {data,error}=await sb.auth.signUp({email,password,options:{data:{full_name:usuario,phone:reg?telefono:null},captchaToken:token}});
+   const {data,error}=await sb.auth.signUp({email,password,options:{data:{full_name:usuario,phone:reg?telefono:null}}});
    if(error)throw error;
    if(data.user)sb.from("profiles").update({phone:telefono}).eq("id",data.user.id).then(({error})=>{if(error)console.warn("No se guardó el teléfono en el perfil:",error.message)});
    if(data.session)return;
@@ -948,7 +931,7 @@ $("#af").onsubmit=async e=>{
     return setErr("Ese usuario ya existe. Inicia sesión.");
    throw new Error("Cuenta creada, pero no se pudo entrar. Prueba a iniciar sesión.");
   }else{
-   const {error}=await sb.auth.signInWithPassword({email,password,options:{captchaToken:token}});
+   const {error}=await sb.auth.signInWithPassword({email,password});
    if(error)throw error;
   }
  }catch(err){
@@ -957,7 +940,6 @@ $("#af").onsubmit=async e=>{
   setErr(msg);
   alert(msg+"\n\n(Detalle: "+(err?.message||"sin detalle")+")");
  }finally{
-  resetCaptcha();
   btn.disabled=false;btn.textContent=reg?"Crear cuenta":"Iniciar sesión";
  }
 };
@@ -2061,17 +2043,20 @@ $("#svibrar").onchange=e=>{
 // ---------- Bandeja de voz (saludo) ----------
 let saludoAudio=null;
 let saludoRec=null;
+let saludoOnMio=false;
 async function loadSaludo(){
  const {data,error}=await sb.from("profiles").select("saludo_on,saludo_path").eq("id",me.id).maybeSingle();
  if(error){console.warn("No se cargó el saludo:",error.message);return}
  $("#svoz").checked=!!(data&&data.saludo_on);
+ saludoOnMio=!!(data&&data.saludo_on);
  $("#sestado").textContent=data&&data.saludo_path?"Tienes un saludo guardado":"Sin saludo";
 }
 $("#svoz").onchange=async e=>{
  const v=e.target.checked;
  const {error}=await sb.from("profiles").update({saludo_on:v}).eq("id",me.id);
  if(error){e.target.checked=!v;return toast(error.message)}
- toast(v?"Saludo activado":"Saludo desactivado");
+ saludoOnMio=v;
+ toast(v?"Bandeja de voz activada":"Bandeja de voz desactivada");
 };
 $("#sgrabar").onclick=async()=>{
  if(saludoRec){saludoRec.stop();return}
@@ -2085,7 +2070,7 @@ $("#sgrabar").onclick=async()=>{
  rec.onstop=async()=>{
   stream.getTracks().forEach(t=>t.stop());
   saludoRec=null;
-  $("#sgrabar").textContent="Grabar mensaje (5 s)";
+  $("#sgrabar").textContent="Grabar mensaje";
   const blob=new Blob(chunks,{type:rec.mimeType||"audio/webm"});
   const ext=blob.type.includes("mp4")?"m4a":"webm";
   const path="saludos/"+me.id+"_"+Date.now()+"."+ext;
@@ -2098,8 +2083,7 @@ $("#sgrabar").onclick=async()=>{
   toast("Saludo guardado");
  };
  rec.start();
- $("#sgrabar").textContent="Grabando… (se para solo a los 5 s)";
- setTimeout(()=>{if(rec.state==="recording")rec.stop()},5000);
+ $("#sgrabar").textContent="Grabando… pulsa para parar";
 };
 $("#sborrarsaludo").onclick=async()=>{
  const {error}=await sb.from("profiles").update({saludo_path:null,saludo_on:false}).eq("id",me.id);
@@ -2343,7 +2327,7 @@ async function startCall(c,video){
 }
 
 function onCallInsert(r){
- if(r.caller_id===me.id||r.status!=="ringing"||call||incoming)return;
+ if(r.caller_id===me.id||r.status!=="ringing"||call||incoming||saludoOnMio)return;
  const c=chats.find(x=>x.id===r.conversation_id);
  if(!c)return;
  incoming={row:r,c,t:setTimeout(hideIncoming,40000)};
@@ -2415,6 +2399,5 @@ function deco(el,seed,op,n,a,b){let s=seed;const r=()=>(s=s*16807%2147483647)/21
 deco($("#da"),23,.9,12,40,90);
 deco($("#dm"),7,.95,7,34,70);deco($("#ds"),11,.45,5,26,46);
 </script>
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad&render=explicit" async defer></script>
 </body>
 </html>
