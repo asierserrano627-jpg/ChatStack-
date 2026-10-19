@@ -6,6 +6,17 @@
 <meta name="theme-color" content="#c8102e">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon-192.png">
+<script>
+function mostrarError(t){
+ const d=document.createElement("div");
+ d.textContent=t;
+ d.style.cssText="position:fixed;left:8px;right:8px;top:8px;z-index:999;background:#c8102e;color:#fff;padding:10px;border-radius:10px;font-size:13px;word-break:break-word";
+ d.onclick=()=>d.remove();
+ document.body?document.body.appendChild(d):document.documentElement.appendChild(d);
+}
+window.addEventListener("error",e=>mostrarError("Error: "+e.message));
+window.addEventListener("unhandledrejection",e=>mostrarError("Error: "+((e.reason&&e.reason.message)||e.reason)));
+</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ChatStack</title>
@@ -911,6 +922,7 @@ $("#atog").onclick=()=>{
 };
 $("#af").onsubmit=async e=>{
  e.preventDefault();
+ toast("Procesando…");
  const usuario=$("#ausuario").value.trim().toLowerCase(),password=$("#apass").value,btn=$("#abtn");
  if(!/^[a-z0-9_.]{3,20}$/.test(usuario))return setErr("El usuario debe tener entre 3 y 20 letras, números, punto o guion bajo.");
  const telefono=normalizarTelefono($("#aphone").value);
