@@ -302,6 +302,24 @@ body:has(.app.chat) .fab{display:none}
 .lp img{width:100%;max-height:160px;object-fit:cover;display:block}
 .lpt{padding:6px 8px;font-size:13px;font-weight:600}
 .lpd{padding:0 8px 6px;font-size:11px;opacity:.7}
+.evmodal{position:fixed;inset:0;background:#000;z-index:80;display:none;flex-direction:column;color:#fff}
+.evmodal.on{display:flex}
+.ev-bars{display:flex;gap:4px;padding:10px 10px 0}
+.ev-bar{flex:1;height:3px;background:rgba(255,255,255,.3);border-radius:2px;overflow:hidden}
+.ev-bar i{display:block;height:100%;width:0;background:#fff}
+.ev-head{display:flex;align-items:center;gap:10px;padding:10px}
+.ev-head small{opacity:.7;display:block}
+.ev-x{margin-left:auto;font-size:32px;color:#fff;padding:0 8px}
+.ev-cont{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}
+.ev-cont p{font-size:26px;font-weight:700;margin:0;word-break:break-word}
+.ev-cont img{max-width:100%;max-height:72vh;border-radius:12px}
+.ev-foot{padding:12px;display:flex;justify-content:space-between;align-items:center;color:#fff;min-height:44px}
+.estados{display:flex;gap:12px;overflow-x:auto;padding:10px 12px}
+.est-card{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--txt);min-width:64px}
+.est-ring{border:3px solid #c8102e;border-radius:50%;padding:2px;display:inline-flex}
+.est-card.visto .est-ring{border-color:#777}
+.est-mas{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#c8102e,#111);color:#fff;display:grid;place-items:center;font-size:30px}
+#est-texto{min-height:80px;font-family:inherit}
 </style>
 </head>
 <body>
@@ -486,6 +504,23 @@ body:has(.app.chat) .fab{display:none}
  </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<div class="evmodal" id="evmodal">
+ <div class="ev-bars" id="ev-bars"></div>
+ <div class="ev-head"><span id="ev-av"></span><div><b id="ev-nombre"></b><small id="ev-hora"></small></div><button class="ev-x" id="ev-cerrar" type="button" aria-label="Cerrar">&times;</button></div>
+ <div class="ev-cont" id="ev-cont"></div>
+ <div class="ev-foot" id="ev-foot"></div>
+</div>
+<div class="cmodal" id="estmodal" role="dialog" aria-modal="true">
+ <div class="cbox">
+  <b>Nuevo estado</b>
+  <textarea class="fld" id="est-texto" placeholder="Escribe algo" maxlength="200" rows="3"></textarea>
+  <select class="fld" id="est-fondo"><option value="#c8102e">Rojo</option><option value="#111113">Negro</option><option value="#0b3d91">Azul</option><option value="#0f6b3a">Verde</option></select>
+  <button class="btn" id="est-publicar" type="button">Publicar texto</button>
+  <button class="btn-a" id="est-foto" type="button">Publicar foto</button>
+  <input type="file" id="est-file" accept="image/*" hidden>
+  <button class="link" id="est-cerrar" type="button">Cancelar</button>
+ </div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <script>
 const $=s=>document.querySelector(s);
@@ -807,7 +842,7 @@ function drawList(){
  const cts=ctsFilt.map(p=>`<button class="row" data-p="${p.id}">${avHtml({other:p,c:initial(p.display_name)},"44px")}<div class="mid"><div class="l1"><span class="nm">${esc(contactAlias[p.id]||p.display_name||"Usuario")}</span></div><div class="l2"><span class="pv">${esc(p.status||"")}</span></div></div></button>`).join("");
  const headC=cts?`<div style="padding:10px 14px 4px;color:var(--mute);font-size:12.5px">Contactos</div>`:"";
  const pHtml=perdidas.length&&!q?`<div style="padding:10px 14px 4px;color:var(--mute);font-size:12.5px">Llamadas perdidas</div>`+perdidas.slice().reverse().map(x=>`<button class="row" data-devolver="${esc(x.convId)}"><div class="mid"><div class="l1"><span class="nm">${esc(x.name)}</span></div><div class="l2"><span class="pv">${x.kind==="video"?"Videollamada":"Llamada de voz"} · ${new Date(x.at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span></div></div><span class="pv" style="color:#c8102e">Devolver</span></button>`).join(""):"";
- list.innerHTML=(barraCarpetas()+pHtml+rows+headC+cts+head+ppl)||'<div class="empty">Aún no tienes chats. Busca a alguien por nombre para empezar.</div>';
+ list.innerHTML=(estadosHtml()+barraCarpetas()+pHtml+rows+headC+cts+head+ppl)||'<div class="empty">Aún no tienes chats. Busca a alguien por nombre para empezar.</div>';
 }
 
 async function startChatWith(uid){
@@ -1036,12 +1071,18 @@ let contactAlias={};
 let tono=(()=>{try{return localStorage.getItem("cs_tono")||"clasico"}catch(e){return "clasico"}})();
 let actx=null,ringTimer=null;
 function audioCtx(){
- if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();
- if(actx.state==="suspended")actx.resume();
- return actx;
+ try{
+  if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();
+  if(actx.state==="suspended")actx.resume().catch(()=>{});
+  return actx;
+ }catch(e){
+  console.warn("Audio no disponible:",e);
+  return null;
+ }
 }
 function beep(f,t0,dur,vol=.25,type="sine"){
- const c=audioCtx(),o=c.createOscillator(),g=c.createGain();
+ const c=audioCtx();if(!c)return;
+ const o=c.createOscillator(),g=c.createGain();
  o.type=type;o.frequency.value=f;o.connect(g);g.connect(c.destination);
  const s=c.currentTime+t0;
  g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(vol,s+.02);g.gain.linearRampToValueAtTime(0,s+dur);
@@ -2120,6 +2161,144 @@ function reproducirSaludoDe(c){
  });
 }
 
+// ---------- Estados (24 horas, solo contactos) ----------
+let estados=[],estadosUsers=new Map(),estadosVistos=new Set();
+let evItems=[],evIdx=0,evT=null,evUid=null;
+async function cargarEstados(){
+ const {data,error}=await sb.from("estados").select("id,user_id,tipo,texto,foto_path,fondo,created_at,expira_at").gt("expira_at",new Date().toISOString()).order("created_at",{ascending:true});
+ if(error){console.warn("No se cargaron los estados:",error.message);return}
+ estados=data||[];
+ const ids=[...new Set(estados.map(e=>e.user_id))];
+ if(ids.length){
+  const {data:perfs}=await sb.from("profiles").select("id,display_name,avatar_url").in("id",ids);
+  estadosUsers=new Map((perfs||[]).map(p=>[p.id,p]));
+ }else estadosUsers=new Map();
+ const {data:vs}=await sb.from("estado_vistas").select("estado_id").eq("user_id",me.id);
+ estadosVistos=new Set((vs||[]).map(v=>v.estado_id));
+ drawList();
+}
+setInterval(cargarEstados,60000);
+function estadosHtml(){
+ const porUsuario=new Map();
+ estados.forEach(e=>{if(!porUsuario.has(e.user_id))porUsuario.set(e.user_id,[]);porUsuario.get(e.user_id).push(e)});
+ const mios=porUsuario.get(me.id)||[];
+ const otros=[...porUsuario.keys()].filter(id=>id!==me.id);
+ const tarjetas=otros.map(uid=>{
+  const items=porUsuario.get(uid);
+  const visto=items.every(e=>estadosVistos.has(e.id));
+  const p=estadosUsers.get(uid)||{};
+  return `<button class="est-card${visto?" visto":""}" data-est="${uid}" type="button"><span class="est-ring">${avHtml({other:{id:uid,avatar_url:p.avatar_url},c:initial(p.display_name)},"52px")}</span><span>${esc(p.display_name||"Usuario")}</span></button>`;
+ }).join("");
+ return `<div class="estados"><button class="est-card" data-est-mio="1" type="button"><span class="est-mas">+</span><span>${mios.length?"Mi estado":"Añadir estado"}</span></button>${tarjetas}</div>`;
+}
+document.addEventListener("click",e=>{
+ const mio=e.target.closest("[data-est-mio]");
+ if(mio){
+  if(estados.some(x=>x.user_id===me.id))abrirVisor(me.id);
+  else abrirComponer();
+  return;
+ }
+ const otro=e.target.closest("[data-est]");
+ if(otro)abrirVisor(otro.dataset.est);
+});
+
+function abrirVisor(uid){
+ evUid=uid;
+ evItems=estados.filter(e=>e.user_id===uid);
+ if(!evItems.length)return;
+ evIdx=0;
+ $("#evmodal").classList.add("on");
+ mostrarItem();
+}
+function cerrarVisor(){
+ clearTimeout(evT);
+ $("#evmodal").classList.remove("on");
+}
+function mostrarItem(){
+ clearTimeout(evT);
+ const e=evItems[evIdx];
+ if(!e){cerrarVisor();return}
+ const p=estadosUsers.get(e.user_id)||{};
+ const esMio=e.user_id===me.id;
+ $("#ev-bars").innerHTML=evItems.map((x,i)=>`<div class="ev-bar"><i style="width:${i<evIdx?100:0}%"></i></div>`).join("");
+ $("#ev-av").innerHTML=avHtml({other:{id:e.user_id,avatar_url:p.avatar_url},c:initial(p.display_name)},"40px");
+ $("#ev-nombre").textContent=esMio?"Tú":(p.display_name||"Usuario");
+ $("#ev-hora").textContent=new Date(e.created_at).toLocaleString([],{hour:"2-digit",minute:"2-digit"});
+ const cont=$("#ev-cont");
+ if(e.tipo==="foto"){
+  cont.style.background="#000";
+  cont.innerHTML=`<img src="${esc(urlFoto(e.foto_path))}" alt="">`;
+ }else{
+  cont.style.background=e.fondo||"#c8102e";
+  cont.innerHTML=`<p>${esc(e.texto||"")}</p>`;
+ }
+ const barra=$("#ev-bars").children[evIdx]?.querySelector("i");
+ requestAnimationFrame(()=>{
+  if(barra){barra.style.transition="width 5s linear";barra.style.width="100%"}
+ });
+ if(!esMio&&!estadosVistos.has(e.id)){
+  estadosVistos.add(e.id);
+  sb.from("estado_vistas").upsert({estado_id:e.id,user_id:me.id},{onConflict:"estado_id,user_id",ignoreDuplicates:true}).then(()=>{});
+ }
+ $("#ev-foot").innerHTML=esMio
+  ?`<small id="ev-vistos">Vistos: ...</small><button class="link" id="ev-borrar" type="button">Borrar</button>`
+  :"";
+ if(esMio){
+  sb.from("estado_vistas").select("user_id",{count:"exact",head:true}).eq("estado_id",e.id).then(({count})=>{
+   const el=$("#ev-vistos");
+   if(el)el.textContent="Vistos: "+(count||0);
+  });
+  $("#ev-borrar")?.addEventListener("click",async()=>{
+   if(!confirm("¿Borrar este estado?"))return;
+   const {error}=await sb.from("estados").delete().eq("id",e.id);
+   if(error)return toast(error.message);
+   estados=estados.filter(x=>x.id!==e.id);
+   evItems=evItems.filter(x=>x.id!==e.id);
+   if(evIdx>=evItems.length)evIdx=evItems.length-1;
+   drawList();
+   mostrarItem();
+  });
+ }
+ evT=setTimeout(()=>{evIdx++;mostrarItem()},5000);
+}
+$("#ev-cerrar").onclick=cerrarVisor;
+$("#ev-cont").onclick=e=>{
+ clearTimeout(evT);
+ if(e.clientX<window.innerWidth/2)evIdx=Math.max(0,evIdx-1);
+ else evIdx++;
+ mostrarItem();
+};
+
+function abrirComponer(){
+ $("#est-texto").value="";
+ $("#estmodal").classList.add("on");
+}
+$("#est-cerrar").onclick=()=>$("#estmodal").classList.remove("on");
+$("#est-publicar").onclick=async()=>{
+ const texto=$("#est-texto").value.trim();
+ if(!texto)return toast("Escribe algo");
+ const {error}=await sb.from("estados").insert({user_id:me.id,tipo:"texto",texto,fondo:$("#est-fondo").value});
+ if(error)return toast("No se publicó: "+error.message);
+ $("#estmodal").classList.remove("on");
+ toast("Estado publicado");
+ await cargarEstados();
+};
+$("#est-foto").onclick=()=>$("#est-file").click();
+$("#est-file").onchange=async e=>{
+ const f=e.target.files[0];
+ e.target.value="";
+ if(!f)return;
+ if(f.size>8*1024*1024)return toast("La foto supera 8 MB");
+ const path="estados/"+me.id+"_"+Date.now()+".jpg";
+ const {error:eUp}=await sb.storage.from("fotos").upload(path,f,{contentType:f.type||"image/jpeg"});
+ if(eUp)return toast("No se pudo subir la foto: "+eUp.message);
+ const {error}=await sb.from("estados").insert({user_id:me.id,tipo:"foto",foto_path:path});
+ if(error)return toast("No se publicó: "+error.message);
+ $("#estmodal").classList.remove("on");
+ toast("Estado publicado");
+ await cargarEstados();
+};
+
 // ---------- Tiempo real ----------
 function subscribe(){
  chan=sb.channel("chatstack")
@@ -2175,7 +2354,7 @@ async function manejarSesion(session){
   if(!started){
    started=true;
    try{
-    await Promise.all([loadProfile(session.user.user_metadata),loadChats(),loadContacts(),loadBloqueos(),loadPrivadas(),loadCodigosGrupos(),loadSaludo()]);
+    await Promise.all([loadProfile(session.user.user_metadata),loadChats(),loadContacts(),loadBloqueos(),loadPrivadas(),loadCodigosGrupos(),loadSaludo(),cargarEstados()]);
     suscribirPush();
     latido();
     subscribe();
