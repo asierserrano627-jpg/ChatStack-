@@ -411,6 +411,10 @@ body:has(.app.chat) .fab{display:none}
   <div class="srow"><input class="fld" type="time" id="sdesde" value="23:00"><input class="fld" type="time" id="shasta" value="08:00"></div>
   <label class="ajlbl"><input type="checkbox" id="socultar"> No enviar confirmación de lectura</label>
   <label class="ajlbl"><input type="checkbox" id="sfotopriv"> Mi foto de perfil solo para contactos</label>
+  <label class="ajlbl"><input type="checkbox" id="svoz"> Activar bandeja de voz (quien te llame escucha tu mensaje y la llamada se corta sola)</label>
+  <button class="btn-a" id="sgrabar" type="button">Grabar mensaje (5 s)</button>
+  <small id="sestado" class="ajlbl"></small>
+  <button class="btn-a" id="sborrarsaludo" type="button">Borrar saludo</button>
   <label class="ajlbl"><input type="checkbox" id="svibrar"> Vibrar en llamadas y mensajes</label>
   <label class="ajlbl"><input type="checkbox" id="sahorro"> Ahorro de datos (no cargar fotos hasta tocarlas)</label>
   <label class="ajlbl" for="sfondo">Fondo del chat</label>
@@ -2054,6 +2058,71 @@ $("#svibrar").onchange=e=>{
  toast(v?"Vibración activada":"Vibración desactivada");
 };
 
+// ---------- Bandeja de voz (saludo) ----------
+let saludoAudio=null;
+let saludoRec=null;
+async function loadSaludo(){
+ const {data,error}=await sb.from("profiles").select("saludo_on,saludo_path").eq("id",me.id).maybeSingle();
+ if(error){console.warn("No se cargó el saludo:",error.message);return}
+ $("#svoz").checked=!!(data&&data.saludo_on);
+ $("#sestado").textContent=data&&data.saludo_path?"Tienes un saludo guardado":"Sin saludo";
+}
+$("#svoz").onchange=async e=>{
+ const v=e.target.checked;
+ const {error}=await sb.from("profiles").update({saludo_on:v}).eq("id",me.id);
+ if(error){e.target.checked=!v;return toast(error.message)}
+ toast(v?"Saludo activado":"Saludo desactivado");
+};
+$("#sgrabar").onclick=async()=>{
+ if(saludoRec){saludoRec.stop();return}
+ let stream;
+ try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}
+ catch(err){return toast("Sin acceso al micrófono: "+err.message)}
+ const chunks=[];
+ const rec=new MediaRecorder(stream);
+ saludoRec=rec;
+ rec.ondataavailable=ev=>{if(ev.data.size)chunks.push(ev.data)};
+ rec.onstop=async()=>{
+  stream.getTracks().forEach(t=>t.stop());
+  saludoRec=null;
+  $("#sgrabar").textContent="Grabar mensaje (5 s)";
+  const blob=new Blob(chunks,{type:rec.mimeType||"audio/webm"});
+  const ext=blob.type.includes("mp4")?"m4a":"webm";
+  const path="saludos/"+me.id+"_"+Date.now()+"."+ext;
+  const {error:eUp}=await sb.storage.from("audios").upload(path,blob,{contentType:blob.type});
+  if(eUp)return toast("No se pudo subir el saludo: "+eUp.message);
+  const {error:eDb}=await sb.from("profiles").update({saludo_path:path,saludo_on:true}).eq("id",me.id);
+  if(eDb)return toast("No se guardó el saludo: "+eDb.message);
+  $("#svoz").checked=true;
+  $("#sestado").textContent="Tienes un saludo guardado";
+  toast("Saludo guardado");
+ };
+ rec.start();
+ $("#sgrabar").textContent="Grabando… (se para solo a los 5 s)";
+ setTimeout(()=>{if(rec.state==="recording")rec.stop()},5000);
+};
+$("#sborrarsaludo").onclick=async()=>{
+ const {error}=await sb.from("profiles").update({saludo_path:null,saludo_on:false}).eq("id",me.id);
+ if(error)return toast(error.message);
+ $("#svoz").checked=false;
+ $("#sestado").textContent="Sin saludo";
+ toast("Saludo borrado");
+};
+function reproducirSaludoDe(c){
+ const otro=c&&!c.isGroup&&c.other?c.other.id:null;
+ if(!otro)return;
+ sb.from("profiles").select("saludo_on,saludo_path").eq("id",otro).maybeSingle().then(({data})=>{
+  if(!data||!data.saludo_on||!data.saludo_path)return;
+  const {data:u}=sb.storage.from("audios").getPublicUrl(data.saludo_path);
+  saludoAudio=new Audio(u.publicUrl);
+  saludoAudio.onended=()=>{
+   saludoAudio=null;
+   if(call&&call.role==="caller"&&!call.startedAt)hangupMine();
+  };
+  saludoAudio.play().catch(err=>console.warn("Mensaje no reproducido:",err));
+ });
+}
+
 // ---------- Tiempo real ----------
 function subscribe(){
  chan=sb.channel("chatstack")
@@ -2109,7 +2178,7 @@ async function manejarSesion(session){
   if(!started){
    started=true;
    try{
-    await Promise.all([loadProfile(session.user.user_metadata),loadChats(),loadContacts(),loadBloqueos(),loadPrivadas(),loadCodigosGrupos()]);
+    await Promise.all([loadProfile(session.user.user_metadata),loadChats(),loadContacts(),loadBloqueos(),loadPrivadas(),loadCodigosGrupos(),loadSaludo()]);
     suscribirPush();
     latido();
     subscribe();
@@ -2217,6 +2286,7 @@ async function onSignal(m){
  }catch(err){console.warn(err);toast("Error de conexión en la llamada")}
 }
 function onConnected(){
+ if(saludoAudio){saludoAudio.pause();saludoAudio=null}
  quitarPerdida(call.id);
  if(call.ringT){clearTimeout(call.ringT);call.ringT=null}
  call.startedAt=Date.now();
@@ -2264,6 +2334,7 @@ async function startCall(c,video){
  const stream=await getMedia(kind);
  if(!stream){hideCall();return}
  call={id,chat:c,kind,role:"caller",pc:null,stream,chan:null,startedAt:null,tick:null,ringT:null,pending:[]};
+ reproducirSaludoDe(c);
  if(kind==="video")$("#lvid").srcObject=stream;
  call.chan=await openSignal(id);
  const {error}=await sb.from("calls").insert({id,conversation_id:c.id,caller_id:me.id,kind,status:"ringing"});
