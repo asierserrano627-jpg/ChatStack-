@@ -330,6 +330,19 @@ html[data-tema="azul"]{color-scheme:light;--bg:#eef4ff;--panel:#ffffff;--panel2:
 html[data-tema="azul"] .btn{background:#1d6fe0;color:#fff}
 html[data-tema="azul"] .btn-a{background:#dbe7ff;color:#0b2545}
 html[data-tema="azul"] .m.out{background:#1d6fe0;color:#fff}
+
+/* ---- Temas de acento (Rojo por defecto, Galaxia se desbloquea con 500 s de uso) ---- */
+#galbg{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;display:none}
+html[data-theme="azul"]{--red:#1d6fe0;--red2:#4d8ff0;--redd:#0b2f6b;--out:#123e8a;--hi:#6aa6ff;--glow:rgba(29,111,224,.45);--glow2:rgba(106,166,255,.2);--tint:rgba(29,111,224,.14)}
+html[data-theme="galaxia"]{--red:#7c5cff;--red2:#a58bff;--redd:#1c1148;--out:#2a1a66;--hi:#c7b6ff;--glow:rgba(124,92,255,.5);--glow2:rgba(120,200,255,.14);--tint:rgba(124,92,255,.16)}
+html[data-theme="galaxia"] body{background:#02030a}
+html[data-theme="galaxia"] .app{position:relative;z-index:1;background:rgba(6,5,18,.42)}
+html[data-theme="galaxia"] .side,html[data-theme="galaxia"] .top,html[data-theme="galaxia"] .ch{background:rgba(8,7,22,.5)}
+html[data-theme="galaxia"] .main{background:transparent}
+html[data-theme="galaxia"] .main::before,html[data-theme="galaxia"] .main::after{display:none}
+.sw small{font-size:11px;color:var(--mute)}
+.sw.bloq{opacity:.55}
+.sw.bloq i{filter:grayscale(1)}
 </style>
 </head>
 <body>
@@ -366,6 +379,8 @@ html[data-tema="azul"] .m.out{background:#1d6fe0;color:#fff}
      <button class="sw on" data-t="rojo"><i style="--c:#c8102e"></i>Rojo</button>
      <button class="sw" data-t="carmesi"><i style="--c:#dc143c"></i>Carmesí</button>
      <button class="sw" data-t="granate"><i style="--c:#8e1b3a"></i>Granate</button>
+     <button class="sw" data-t="azul"><i style="--c:#1d6fe0"></i>Azul</button>
+     <button class="sw" data-t="galaxia" id="swgal"><i style="--c:#7c5cff"></i>Galaxia<small id="gprog"></small></button>
     </div>
    </div>
   </div>
@@ -523,6 +538,7 @@ html[data-tema="azul"] .m.out{background:#1d6fe0;color:#fff}
  <div class="ev-head"><span id="ev-av"></span><div><b id="ev-nombre"></b><small id="ev-hora"></small></div><button class="ev-x" id="ev-cerrar" type="button" aria-label="Cerrar">&times;</button></div>
  <div class="ev-cont" id="ev-cont"></div>
  <div class="ev-foot" id="ev-foot"></div>
+ <div id="ev-yt" style="position:absolute;width:2px;height:2px;opacity:0;pointer-events:none;overflow:hidden"></div>
 </div>
 <div class="cmodal" id="estmodal" role="dialog" aria-modal="true">
  <div class="cbox">
@@ -531,6 +547,7 @@ html[data-tema="azul"] .m.out{background:#1d6fe0;color:#fff}
   <select class="fld" id="est-fondo"><option value="#c8102e">Rojo</option><option value="#111113">Negro</option><option value="#0b3d91">Azul</option><option value="#0f6b3a">Verde</option></select>
   <button class="btn-a" id="est-musica" type="button">Añadir música</button>
   <small id="est-musica-nombre"></small>
+  <input class="fld" id="est-yt" placeholder="Link de YouTube para la música (opcional)" autocomplete="off">
   <input type="file" id="est-musica-file" accept="audio/*" hidden>
   <button class="btn" id="est-publicar" type="button">Publicar texto</button>
   <button class="btn-a" id="est-foto" type="button">Publicar foto</button>
@@ -950,13 +967,23 @@ async function guardarEstado(){
  if(error)toast(error.message);
  else if(hora)toast("Estado visible hasta las "+hora);
 }
+async function aJpeg(f){
+ const img=await createImageBitmap(f);
+ const c=document.createElement("canvas");
+ c.width=img.width;c.height=img.height;
+ const x=c.getContext("2d");
+ x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);
+ x.drawImage(img,0,0);
+ return await new Promise(r=>c.toBlob(r,"image/jpeg",0.9));
+}
 $("#pfile").onchange=async e=>{
  const f=e.target.files[0];e.target.value="";
  if(!f||!f.type.startsWith("image/"))return;
  if(f.size>5*1024*1024)return toast("La foto supera 5 MB");
- const ext=f.type.split("/")[1].replace("jpeg","jpg");
- const path=`${me.id}/avatar.${ext}`;
- const {error}=await sb.storage.from("avatars").upload(path,f,{upsert:true,contentType:f.type});
+ const blob=await aJpeg(f).catch(()=>null);
+ if(!blob)return toast("No se pudo procesar la foto");
+ const path=`${me.id}/avatar.jpg`;
+ const {error}=await sb.storage.from("avatars").upload(path,blob,{upsert:true,contentType:"image/jpeg"});
  if(error)return toast(error.message);
  const {data}=sb.storage.from("avatars").getPublicUrl(path);
  const url=data.publicUrl+"?t="+Date.now();
@@ -969,10 +996,159 @@ $("#pquitar").onclick=async()=>{
  const {error}=await sb.from("profiles").update({avatar_url:null}).eq("id",me.id);
  if(error)toast(error.message);
 };
-document.querySelectorAll(".sw").forEach(b=>b.onclick=()=>{
- document.documentElement.dataset.theme=b.dataset.t;
- document.querySelectorAll(".sw").forEach(z=>z.classList.toggle("on",z===b));
+document.querySelectorAll(".sw").forEach(b=>b.onclick=()=>aplicarAcento(b.dataset.t));
+
+// ---------- Acento de color y tema Galaxia (500 s de uso) ----------
+const GAL_META=500;
+let galSeg=(()=>{try{return Math.min(GAL_META,parseFloat(localStorage.getItem("cs_gal_seg")||"0")||0)}catch(e){return 0}})();
+let galOk=galSeg>=GAL_META;
+let acento=(()=>{try{return localStorage.getItem("cs_acento")||"rojo"}catch(e){return "rojo"}})();
+const galCv=document.createElement("canvas");galCv.id="galbg";document.body.prepend(galCv);
+let galAnim=null,galBase=null,galTw=[];
+
+function galGuardar(){try{localStorage.setItem("cs_gal_seg",String(galSeg))}catch(e){}}
+function galPintarProgreso(){
+ const el=document.getElementById("gprog");
+ if(el)el.textContent=galOk?"Desbloqueado":Math.floor(galSeg)+" / "+GAL_META+" s";
+ document.getElementById("swgal")?.classList.toggle("bloq",!galOk);
+}
+// Cuenta solo mientras la app está visible; se guarda en cada segundo, así que sobrevive a cerrar la app
+setInterval(()=>{
+ if(document.visibilityState!=="visible"||galOk)return;
+ galSeg=Math.min(GAL_META,galSeg+1);
+ galGuardar();
+ if(galSeg>=GAL_META){galOk=true;toast("¡Tema Galaxia desbloqueado!")}
+ galPintarProgreso();
+},1000);
+addEventListener("pagehide",galGuardar);
+
+function aplicarAcento(v){
+ if(v==="galaxia"&&!galOk){
+  toast("Galaxia se desbloquea tras 500 s de uso ("+Math.floor(galSeg)+" s ahora)");
+  return false;
+ }
+ acento=v;
+ try{localStorage.setItem("cs_acento",v)}catch(e){}
+ document.documentElement.dataset.theme=v;
+ document.querySelectorAll(".sw").forEach(z=>z.classList.toggle("on",z.dataset.t===v));
+ galActivar(v==="galaxia");
+ return true;
+}
+
+// Generador pseudoaleatorio reproducible (para que el cielo sea siempre igual)
+function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){let u=0,v=0;while(!u)u=r();while(!v)v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)/3}
+
+function galPlaneta(g,x,y,r){
+ g.save();
+ const at=g.createRadialGradient(x,y,r*0.95,x,y,r*1.4);
+ at.addColorStop(0,"rgba(120,190,255,.5)");at.addColorStop(1,"rgba(120,190,255,0)");
+ g.fillStyle=at;g.beginPath();g.arc(x,y,r*1.4,0,6.283);g.fill();
+ g.beginPath();g.arc(x,y,r,0,6.283);g.clip();
+ const base=g.createLinearGradient(x-r,y,x+r,y);
+ base.addColorStop(0,"#1b3c6b");base.addColorStop(1,"#0d2347");
+ g.fillStyle=base;g.fillRect(x-r,y-r,r*2,r*2);
+ const bandas=["#2c5d96","#7fb4e6","#1f4a80","#a6d4f2","#274f86","#5e96cf","#183867","#8cc0ea"];
+ bandas.forEach((c,i)=>{
+  const h=2*r/bandas.length, yy=y-r+i*h;
+  g.globalAlpha=0.5;g.fillStyle=c;g.fillRect(x-r,yy,2*r,h*0.9);
+ });
+ g.globalAlpha=1;
+ const sh=g.createRadialGradient(x-r*0.45,y-r*0.4,r*0.05,x,y,r);
+ sh.addColorStop(0,"rgba(255,255,255,.28)");sh.addColorStop(.55,"rgba(0,0,0,0)");sh.addColorStop(1,"rgba(0,0,10,.92)");
+ g.fillStyle=sh;g.fillRect(x-r,y-r,2*r,2*r);
+ g.restore();
+}
+
+function galPrerender(){
+ const dpr=1;
+ const W=innerWidth,H=innerHeight,S=Math.max(W,H);
+ galCv.width=Math.round(W*dpr);galCv.height=Math.round(H*dpr);
+ galBase=document.createElement("canvas");
+ galBase.width=Math.round(W*dpr)+24;galBase.height=Math.round(H*dpr)+24;
+ const g=galBase.getContext("2d");
+ g.setTransform(dpr,0,0,dpr,0,0);
+ const bg=g.createLinearGradient(0,0,W,H);
+ bg.addColorStop(0,"#03040c");bg.addColorStop(.5,"#06041a");bg.addColorStop(1,"#010103");
+ g.fillStyle=bg;g.fillRect(0,0,W+24,H+24);
+ const rnd=mulberry(42);
+ g.save();
+ g.translate(W/2,H/2);g.rotate(-0.42);
+ const L=S*1.6,grosor=S*0.16;
+ // resplandor general de la Vía Láctea
+ const glow=g.createLinearGradient(0,-grosor*1.6,0,grosor*1.6);
+ glow.addColorStop(0,"rgba(0,0,0,0)");glow.addColorStop(.35,"rgba(150,120,190,.10)");
+ glow.addColorStop(.5,"rgba(230,200,230,.22)");glow.addColorStop(.65,"rgba(150,120,190,.10)");glow.addColorStop(1,"rgba(0,0,0,0)");
+ g.fillStyle=glow;g.fillRect(-L,-grosor*1.6,L*2,grosor*3.2);
+ // nebulosas de colores
+ for(let i=0;i<260;i++){
+  const x=(rnd()*2-1)*L*0.9,y=gauss(rnd)*grosor*0.6,r=S*(0.02+rnd()*0.07);
+  const hue=[280,200,330,30][Math.floor(rnd()*4)];
+  const gr=g.createRadialGradient(x,y,0,x,y,r);
+  gr.addColorStop(0,"hsla("+hue+",70%,70%,"+(0.05+rnd()*0.06)+")");gr.addColorStop(1,"hsla("+hue+",70%,60%,0)");
+  g.fillStyle=gr;g.fillRect(x-r,y-r,r*2,r*2);
+ }
+ // polvo oscuro (carriles de la galaxia)
+ for(let i=0;i<420;i++){
+  const x=(rnd()*2-1)*L*0.9,y=gauss(rnd)*grosor*0.35,r=S*(0.01+rnd()*0.03);
+  const gr=g.createRadialGradient(x,y,0,x,y,r);
+  gr.addColorStop(0,"rgba(2,1,4,.55)");gr.addColorStop(1,"rgba(2,1,4,0)");
+  g.fillStyle=gr;g.fillRect(x-r,y-r,r*2,r*2);
+ }
+ // estrellas densas de la banda
+ for(let i=0;i<22000;i++){
+  const x=(rnd()*2-1)*L,y=gauss(rnd)*grosor*0.7;
+  const b=Math.min(1,0.3+rnd()*0.7);
+  const c=rnd()<0.15?"160,190,255":(rnd()<0.5?"255,240,220":"255,220,190");
+  g.fillStyle="rgba("+c+","+b+")";
+  g.beginPath();g.arc(x,y,rnd()<0.97?0.5:1.1,0,6.283);g.fill();
+ }
+ g.restore();
+ // estrellas de todo el cielo
+ for(let i=0;i<900;i++){
+  g.fillStyle="rgba(255,255,255,"+(0.3+rnd()*0.7)+")";
+  g.beginPath();g.arc(rnd()*W,rnd()*H,rnd()<0.9?0.5:1,0,6.283);g.fill();
+ }
+ galPlaneta(g,W*0.78,H*0.74,Math.min(W,H)*0.11);
+ // destellos que parpadean
+ galTw=[];
+ for(let i=0;i<140;i++)galTw.push({x:rnd()*W,y:rnd()*H,r:0.6+rnd()*1.2,a:0.4+rnd()*0.5,f:0.5+rnd()*1.8,p:rnd()*6.28});
+}
+
+function galFrame(t){
+ if(!galBase)return;
+ const ctx=galCv.getContext("2d");
+ ctx.setTransform(1,0,0,1,0,0);
+ ctx.clearRect(0,0,galCv.width,galCv.height);
+ const dx=Math.sin(t*0.00005)*12, dy=Math.cos(t*0.00004)*8;
+ ctx.drawImage(galBase,-12+dx,-12+dy);
+ ctx.fillStyle="#fff";
+ for(const s of galTw){
+  ctx.globalAlpha=s.a*(0.6+0.4*Math.sin(t*0.001*s.f+s.p));
+  ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,6.283);ctx.fill();
+ }
+ ctx.globalAlpha=1;
+ galAnim=requestAnimationFrame(galFrame);
+}
+function galActivar(on){
+ if(on){
+  galCv.style.display="block";
+  galPrerender();
+  if(!galAnim)galAnim=requestAnimationFrame(galFrame);
+ }else{
+  if(galAnim){cancelAnimationFrame(galAnim);galAnim=null}
+  galCv.style.display="none";
+ }
+}
+let galRT=null;
+addEventListener("resize",()=>{
+ clearTimeout(galRT);
+ galRT=setTimeout(()=>{if(acento==="galaxia")galPrerender()},250);
 });
+
+if(acento==="galaxia"&&!galOk)acento="rojo";
+galPintarProgreso();
+aplicarAcento(acento);
 $("#blogout").onclick=async()=>{
  closeDrawer();
  try{await sb.auth.signOut({scope:"local"})}catch(e){console.warn(e)}
@@ -2207,7 +2383,7 @@ function reproducirSaludoDe(c){
 let estados=[],estadosUsers=new Map(),estadosVistos=new Set();
 let evItems=[],evIdx=0,evT=null,evUid=null;
 async function cargarEstados(){
- const {data,error}=await sb.from("estados").select("id,user_id,tipo,texto,foto_path,fondo,created_at,expira_at,musica_path").gt("expira_at",new Date().toISOString()).order("created_at",{ascending:true});
+ const {data,error}=await sb.from("estados").select("id,user_id,tipo,texto,foto_path,fondo,created_at,expira_at,musica_path,musica_yt").gt("expira_at",new Date().toISOString()).order("created_at",{ascending:true});
  if(error){console.warn("No se cargaron los estados:",error.message);return}
  estados=data||[];
  const ids=[...new Set(estados.map(e=>e.user_id))];
@@ -2231,13 +2407,13 @@ function estadosHtml(){
   const p=estadosUsers.get(uid)||{};
   return `<button class="est-card${visto?" visto":""}" data-est="${uid}" type="button"><span class="est-ring">${avHtml({other:{id:uid,avatar_url:p.avatar_url},c:initial(p.display_name)},"52px")}</span><span>${esc(p.display_name||"Usuario")}</span></button>`;
  }).join("");
- return `<div class="estados"><button class="est-card" data-est-mio="1" type="button"><span class="est-mas">+</span><span>${mios.length?"Mi estado":"Añadir estado"}</span></button>${tarjetas}</div>`;
+ const miTarjeta=mios.length?`<button class="est-card" data-est="${me.id}" type="button"><span class="est-ring">${avHtml({other:{id:me.id,avatar_url:me.photo},c:initial(me.name)},"52px")}</span><span>Mi estado</span></button>`:"";
+ return `<div class="estados"><button class="est-card" data-est-mio="1" type="button"><span class="est-mas">+</span><span>Añadir estado</span></button>${miTarjeta}${tarjetas}</div>`;
 }
 document.addEventListener("click",e=>{
  const mio=e.target.closest("[data-est-mio]");
  if(mio){
-  if(estados.some(x=>x.user_id===me.id))abrirVisor(me.id);
-  else abrirComponer();
+  abrirComponer();
   return;
  }
  const otro=e.target.closest("[data-est]");
@@ -2261,6 +2437,7 @@ function mostrarItem(){
  clearTimeout(evT);
  const e=evItems[evIdx];
  if(!e){cerrarVisor();return}
+ const dur=(e.musica_yt||e.musica_path)?30000:5000;
  const p=estadosUsers.get(e.user_id)||{};
  const esMio=e.user_id===me.id;
  $("#ev-bars").innerHTML=evItems.map((x,i)=>`<div class="ev-bar"><i style="width:${i<evIdx?100:0}%"></i></div>`).join("");
@@ -2282,9 +2459,13 @@ function mostrarItem(){
   musicaVisor.loop=true;
   musicaVisor.play().catch(err=>console.warn("Música no reproducida:",err));
  }
+ if(e.musica_yt){
+  const id=ytIdDe(e.musica_yt);
+  if(id)$("#ev-yt").innerHTML=`<iframe width="2" height="2" src="https://www.youtube.com/embed/${id}?autoplay=1&loop=1&playlist=${id}&playsinline=1&controls=0" allow="autoplay; encrypted-media" frameborder="0"></iframe>`;
+ }
  const barra=$("#ev-bars").children[evIdx]?.querySelector("i");
  requestAnimationFrame(()=>{
-  if(barra){barra.style.transition="width 5s linear";barra.style.width="100%"}
+  if(barra){barra.style.transition="width "+(dur/1000)+"s linear";barra.style.width="100%"}
  });
  if(!esMio&&!estadosVistos.has(e.id)){
   estadosVistos.add(e.id);
@@ -2309,7 +2490,7 @@ function mostrarItem(){
    mostrarItem();
   });
  }
- evT=setTimeout(()=>{evIdx++;mostrarItem()},5000);
+ evT=setTimeout(()=>{evIdx++;mostrarItem()},dur);
 }
 $("#ev-cerrar").onclick=cerrarVisor;
 $("#ev-cont").onclick=e=>{
@@ -2321,6 +2502,7 @@ $("#ev-cont").onclick=e=>{
 
 function abrirComponer(){
  $("#est-texto").value="";
+ $("#est-yt").value="";
  estMusica=null;
  $("#est-musica-nombre").textContent="";
  $("#estmodal").classList.add("on");
@@ -2329,8 +2511,10 @@ $("#est-cerrar").onclick=()=>$("#estmodal").classList.remove("on");
 $("#est-publicar").onclick=async()=>{
  const texto=$("#est-texto").value.trim();
  if(!texto)return toast("Escribe algo");
- const musica=await subirMusica();
- const {error}=await sb.from("estados").insert({user_id:me.id,tipo:"texto",texto,fondo:$("#est-fondo").value,musica_path:musica});
+ const yt=ytIdDe($("#est-yt").value);
+ if($("#est-yt").value.trim()&&!yt)return toast("Link de YouTube no válido");
+ const musica=yt?null:await subirMusica();
+ const {error}=await sb.from("estados").insert({user_id:me.id,tipo:"texto",texto,fondo:$("#est-fondo").value,musica_path:musica,musica_yt:yt});
  if(error)return toast("No se publicó: "+error.message);
  $("#estmodal").classList.remove("on");
  toast("Estado publicado");
@@ -2345,8 +2529,10 @@ $("#est-file").onchange=async e=>{
  const path="estados/"+me.id+"_"+Date.now()+".jpg";
  const {error:eUp}=await sb.storage.from("fotos").upload(path,f,{contentType:f.type||"image/jpeg"});
  if(eUp)return toast("No se pudo subir la foto: "+eUp.message);
- const musica=await subirMusica();
- const {error}=await sb.from("estados").insert({user_id:me.id,tipo:"foto",foto_path:path,musica_path:musica});
+ const yt=ytIdDe($("#est-yt").value);
+ if($("#est-yt").value.trim()&&!yt)return toast("Link de YouTube no válido");
+ const musica=yt?null:await subirMusica();
+ const {error}=await sb.from("estados").insert({user_id:me.id,tipo:"foto",foto_path:path,musica_path:musica,musica_yt:yt});
  if(error)return toast("No se publicó: "+error.message);
  $("#estmodal").classList.remove("on");
  toast("Estado publicado");
@@ -2461,7 +2647,7 @@ async function capturarPantalla(c){
 
 // ---------- Tema y aviso por voz del nombre ----------
 function aplicarTema(){
- const t=localStorage.getItem("cs_tema")||"azul";
+ const t=localStorage.getItem("cs_tema")||"negro";
  document.documentElement.dataset.tema=t;
  $("#stema").value=t;
 }
@@ -2541,6 +2727,13 @@ let estMusica=null;
 let musicaVisor=null;
 function detenerMusica(){
  if(musicaVisor){musicaVisor.pause();musicaVisor=null}
+ const ytEl=document.getElementById("ev-yt");
+ if(ytEl)ytEl.innerHTML="";
+}
+function ytIdDe(u){
+ if(!u||!u.trim())return null;
+ const m=u.trim().match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|v\/))([A-Za-z0-9_-]{11})/);
+ return m?m[1]:null;
 }
 async function subirMusica(){
  if(!estMusica)return null;
