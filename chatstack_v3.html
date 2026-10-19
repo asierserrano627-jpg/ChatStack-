@@ -684,6 +684,7 @@ async function loadProfile(metaUsuario){
 }
 
 async function loadChats(){
+ reaplicarApodos();
  const {data:mem,error}=await sb.from("conversation_members")
   .select("conversation_id,last_read_at,conversations(id,is_group,title,created_at)")
   .eq("user_id",me.id);
@@ -780,6 +781,58 @@ async function send(c,fields){
  onNewMsg(data);
 }
 
+
+// ---------- Fondo de chat y apodos locales ----------
+let fondosChat=(()=>{try{return JSON.parse(localStorage.getItem("cs_fondos")||"{}")}catch(e){return {}}})();
+function guardarFondos(){try{localStorage.setItem("cs_fondos",JSON.stringify(fondosChat))}catch(e){}}
+function aplicarFondoChat(c){
+ const ms=document.getElementById("ms");
+ if(!ms||!c)return;
+ const f=fondosChat[c.id];
+ ms.style.background=f?"linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.35)),url(\""+f+"\") center/cover no-repeat":"";
+}
+async function imagenReducida(f,max,q){
+ const img=await createImageBitmap(f);
+ const k=Math.min(1,max/Math.max(img.width,img.height));
+ const cv=document.createElement("canvas");
+ cv.width=Math.round(img.width*k);cv.height=Math.round(img.height*k);
+ cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+ return cv.toDataURL("image/jpeg",q);
+}
+let fondoChatTarget=null;
+const fondoIn=document.createElement("input");
+fondoIn.type="file";fondoIn.accept="image/*";fondoIn.hidden=true;
+document.body.appendChild(fondoIn);
+fondoIn.onchange=async e=>{
+ const f=e.target.files[0];e.target.value="";
+ if(!f||!fondoChatTarget)return;
+ let url;
+ try{url=await imagenReducida(f,1080,0.8)}catch(err){return toast("No se pudo leer la foto")}
+ const id=fondoChatTarget;
+ fondosChat[id]=url;
+ try{localStorage.setItem("cs_fondos",JSON.stringify(fondosChat))}
+ catch(err){delete fondosChat[id];return toast("No hay espacio para más fondos. Quita algún fondo antes.")}
+ const c=chats.find(x=>x.id===id);
+ if(c)aplicarFondoChat(c);
+ toast("Fondo cambiado");
+};
+async function cambiarApodoChat(c){
+ const id=c.other?.id;
+ if(!id)return;
+ const actual=apodosLocal[id]||c.other.display_name||"";
+ const nuevo=prompt("Apodo (solo lo verás tú, déjalo vacío para quitarlo):",actual);
+ if(nuevo===null)return;
+ const alias=nuevo.trim().slice(0,40);
+ if(alias){apodosLocal[id]=alias;guardarApodos();reaplicarApodos()}
+ else{delete apodosLocal[id];guardarApodos();await loadContacts()}
+ const nombre=alias||contactAlias[id]||c.other.display_name||"Usuario";
+ c.n=nombre;c.c=initial(nombre);
+ const titulo=document.querySelector(".ch .who b");
+ if(titulo)titulo.textContent=nombre;
+ drawList();
+ toast("Apodo guardado");
+}
+
 // ---------- Vista de chat ----------
 function renderChat(c){
  const sub=c.isGroup?"Grupo":(c.other?.status||"");
@@ -791,6 +844,7 @@ function renderChat(c){
  <form class="bar" id="f"><button type="button" class="ic" id="emo" aria-label="Stickers"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14c1 2 7 2 8 0M9 9.5h.01M15 9.5h.01"/></svg></button><button type="button" class="ic" id="emj" aria-label="Emojis"><svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="10" fill="#c8102e"/><circle cx="12" cy="12" r="8" fill="#111"/><circle cx="9" cy="10" r="1.3" fill="#fff"/><circle cx="15" cy="10" r="1.3" fill="#fff"/><path d="M8.5 14.5q3.5 3 7 0" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg></button><button type="button" class="ic" id="dictar" aria-label="Dictar mensaje"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 12h2M8 8v8M12 5v14M16 9v6M20 11v2" stroke="#c8102e" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg></button><button type="button" class="ic" id="plant" aria-label="Respuestas rápidas"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M13 2L4 14h7l-1 8 9-12h-7z" fill="#c8102e" stroke="#fff" stroke-width="1"/></svg></button><button type="button" class="ic" id="foto" aria-label="Enviar foto"><svg viewBox="0 0 24 24" width="22" height="22"><rect x="3" y="7" width="18" height="13" rx="3" fill="#111" stroke="#c8102e" stroke-width="2"/><circle cx="12" cy="13.5" r="3.5" fill="#c8102e"/></svg></button><input type="file" id="fotoin" accept="image/*" hidden><button type="button" class="rec" id="mic" aria-label="Mensaje de voz"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></button><input id="inp" placeholder="Escribe un mensaje" autocomplete="off" aria-label="Mensaje"><button class="send" aria-label="Enviar"><svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-3-7-7-1z"/></svg></button></form>`;
  marcarEstados(c);
  const ms=$("#ms");
+ aplicarFondoChat(c);
  ms.innerHTML=c.m.map(bub).join("");
  ms.scrollTop=ms.scrollHeight;
  $("#bk").onclick=()=>{if(history.state&&history.state.chat)history.back();else leaveChat()};
@@ -872,6 +926,7 @@ async function loadContacts(){
  }
  const ids=(rel||[]).map(r=>r.contact_id);
  contactAlias=Object.fromEntries((rel||[]).filter(r=>r.alias).map(r=>[r.contact_id,r.alias]));
+reaplicarApodos();
  if(!ids.length){contacts=[];drawList();return}
  const {data:perfiles}=await sb.from("profiles").select("id,display_name,avatar_url,status,phone").in("id",ids);
  contacts=perfiles||[];
@@ -1272,6 +1327,9 @@ $("#cnum").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault()
 
 // ---------- Tonos, notificaciones, ajustes y nombres de contactos ----------
 let contactAlias={};
+let apodosLocal=(()=>{try{return JSON.parse(localStorage.getItem("cs_apodos")||"{}")}catch(e){return {}}})();
+function reaplicarApodos(){Object.assign(contactAlias,apodosLocal)}
+function guardarApodos(){try{localStorage.setItem("cs_apodos",JSON.stringify(apodosLocal))}catch(e){}}
 let tono=(()=>{try{return localStorage.getItem("cs_tono")||"clasico"}catch(e){return "clasico"}})();
 let actx=null,ringTimer=null;
 function audioCtx(){
@@ -2084,6 +2142,16 @@ async function vaciarCola(){
 window.addEventListener("online",()=>{toast("Conexión recuperada");vaciarCola()});
 setInterval(vaciarCola,20000);
 
+// Respaldo: si el tiempo real no entrega la llamada, la buscamos cada 3 s con la app abierta
+async function sondearLlamadas(){
+ if(!me||!me.id||document.visibilityState!=="visible")return;
+ const desde=new Date(Date.now()-60000).toISOString();
+ const {data,error}=await sb.from("calls").select("*").eq("status","ringing").neq("caller_id",me.id).gte("created_at",desde).order("created_at",{ascending:false}).limit(3);
+ if(error||!data)return;
+ for(const r of data)onCallInsert(r);
+}
+setInterval(sondearLlamadas,3000);
+
 // ---------- Ajustes: cuenta ----------
 $("#scontra").onclick=async()=>{
  const nueva=prompt("Escribe la nueva contraseña (mínimo 6 caracteres):");
@@ -2594,6 +2662,9 @@ function abrirMenuChat(c){
   <button class="btn-a" id="cm-sil" type="button">${silenciados.includes(c.id)?"Quitar silencio":"Silenciar"}</button>
   <button class="btn-a" id="cm-arch" type="button">${archivados.includes(c.id)?"Desarchivar":"Archivar"}</button>
   <button class="btn-a" id="cm-borrar" type="button">Borrar de mi lista</button>
+  ${!c.isGroup&&c.other?'<button class="btn-a" id="cm-apodo" type="button">Cambiar apodo (solo tú lo ves)</button>':""}
+  <button class="btn-a" id="cm-fondo" type="button">Cambiar fondo del chat</button>
+  ${fondosChat[c.id]?'<button class="btn-a" id="cm-quitarfondo" type="button">Quitar fondo</button>':""}
   <button class="btn-a" id="cm-captura" type="button">Enviar captura de pantalla</button>
   <button class="link" id="cm-cerrar" type="button">Cerrar</button>`;
  $("#chmodal").classList.add("on");
@@ -2617,6 +2688,9 @@ function abrirMenuChat(c){
   toast("Chat borrado de tu lista");
  };
  $("#cm-captura").onclick=()=>{cerrarMenuChat();capturarPantalla(c)};
+ $("#cm-fondo").onclick=()=>{cerrarMenuChat();fondoChatTarget=c.id;fondoIn.click()};
+ $("#cm-quitarfondo")?.addEventListener("click",()=>{cerrarMenuChat();delete fondosChat[c.id];guardarFondos();aplicarFondoChat(c);toast("Fondo quitado")});
+ $("#cm-apodo")?.addEventListener("click",()=>{cerrarMenuChat();cambiarApodoChat(c)});
 }
 async function capturarPantalla(c){
  if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia)return toast("Este navegador no permite capturar la pantalla");
@@ -2647,17 +2721,17 @@ async function capturarPantalla(c){
 
 // ---------- Tema y aviso por voz del nombre ----------
 function aplicarTema(){
- const t=localStorage.getItem("cs_tema")||"negro";
+ const t=localStorage.getItem("cs_tema2")||"negro";
  document.documentElement.dataset.tema=t;
  $("#stema").value=t;
 }
 $("#stema").onchange=e=>{
- try{localStorage.setItem("cs_tema",e.target.value)}catch(err){}
+ try{localStorage.setItem("cs_tema2",e.target.value)}catch(err){}
  aplicarTema();
 };
 aplicarTema();
 
-let decirNombre=localStorage.getItem("cs_decir")==="1";
+let decirNombre=localStorage.getItem("cs_decir")!=="0";
 $("#sdecir").checked=decirNombre;
 $("#sdecir").onchange=e=>{
  decirNombre=e.target.checked;
@@ -2985,10 +3059,23 @@ async function startCall(c,video){
  call.ringT=setTimeout(hangupMine,40000);
 }
 
-function onCallInsert(r){
- if(r.caller_id===me.id||r.status!=="ringing"||call||incoming||saludoOnMio)return;
- const c=chats.find(x=>x.id===r.conversation_id);
- if(!c)return;
+const llamadasVistas=new Set();
+const DEBUG_LLAMADAS=true; // diagnóstico temporal: muestra por qué no suena una llamada
+async function onCallInsert(r){
+ const dbg=m=>{if(DEBUG_LLAMADAS)toast("[llamada] "+m)};
+ dbg("recibida "+String(r.id).slice(0,6)+" · "+r.status+(r.caller_id===me.id?" · mía":""));
+ if(llamadasVistas.has(r.id)){dbg("ya mostrada antes");return}
+ if(r.caller_id===me.id){dbg("la hice yo");return}
+ if(r.status!=="ringing"){dbg("estado "+r.status);return}
+ if(call){dbg("ya hay una llamada en curso");return}
+ if(incoming){dbg("ya hay una alerta abierta");return}
+ if(saludoOnMio){dbg("bandeja de voz activa: no suena");return}
+ llamadasVistas.add(r.id);
+ let c=chats.find(x=>x.id===r.conversation_id);
+ if(!c){await loadChats();c=chats.find(x=>x.id===r.conversation_id)}
+ if(!c)c={id:r.conversation_id,n:"Llamada",c:"L",isGroup:false};
+ if(call||incoming){dbg("ocupado tras cargar");return}
+ dbg("mostrando alerta");
  incoming={row:r,c,t:setTimeout(hideIncoming,40000)};
  $("#incav").textContent=c.c;$("#incav").className="av "+(c.isGroup?"r":"");
  $("#incn").textContent=c.n;
