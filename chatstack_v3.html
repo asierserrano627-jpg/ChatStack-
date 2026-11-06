@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#c8102e">
@@ -17,7 +18,6 @@ function mostrarError(t){
 window.addEventListener("error",e=>mostrarError("Error: "+e.message));
 window.addEventListener("unhandledrejection",e=>mostrarError("Error: "+((e.reason&&e.reason.message)||e.reason)));
 </script>
-<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ChatStack</title>
 <style>
@@ -94,13 +94,21 @@ background:radial-gradient(ellipse at 50% 50%,#150a0c 0,#050505 85%)}
 .m{max-width:min(68%,520px);padding:7px 10px 6px;border-radius:10px;position:relative;box-shadow:0 1px 2px #0008;word-wrap:break-word;cursor:pointer}
 .m.in{align-self:flex-start;background:var(--in);border-top-left-radius:2px}
 .m.out{align-self:flex-end;background:linear-gradient(160deg,var(--hi),var(--out));border-top-right-radius:2px}
-.m.out.image,.m.out.voice{background:linear-gradient(160deg,var(--hi),var(--out))}
-.m.sticker{background:none!important;box-shadow:none;padding:0}
-.m.deleted,.m[data-id] .del{cursor:default}
+.m.t_sticker{background:none!important;box-shadow:none;padding:0}
+.m.t_deleted,.m[data-id] .del{cursor:default}
 .m.typing{padding:10px 12px}
 .m span.t{float:right;margin:8px 0 -3px 12px;font-size:11px;color:#ffffff99;display:flex;align-items:center;gap:3px}
 .m.in span.t{color:var(--mute)}
-.m.sticker span.t{color:var(--mute);margin-top:0}
+.m.t_sticker span.t{color:var(--mute);margin-top:0}
+.m a{color:inherit;text-decoration:underline;word-break:break-all}
+.poll{min-width:230px;display:flex;flex-direction:column;gap:6px}
+.poll b{font-size:15px}
+.poll small{opacity:.75;font-size:12px}
+.po{position:relative;overflow:hidden;text-align:left;padding:8px 10px;border-radius:8px;background:#0000002e;border:1px solid #ffffff22;display:flex;justify-content:space-between;gap:8px;font-size:14px;width:100%}
+.po i{position:absolute;left:0;top:0;bottom:0;width:var(--p,0%);background:#ffffff2e;z-index:0;transition:width .3s}
+.po span{position:relative;z-index:1}
+.po.on{border-color:#fff}
+.emj-t{grid-column:1/-1;font-size:12px;color:var(--mute);padding:2px 4px}
 .tk svg{width:15px;height:15px;stroke:currentColor;stroke-width:2.2}
 .tk.s,.tk.d{color:#ffffffaa}
 .tk.r{color:#8fd8ff}
@@ -264,7 +272,11 @@ background:radial-gradient(ellipse at 50% 50%,#150a0c 0,#050505 85%)}
 .rec svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round}
 .rec.on{animation:bl 1s infinite}
 .emjp{position:absolute;left:12px;right:12px;bottom:72px;display:grid;grid-template-columns:repeat(8,1fr);gap:2px;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:8px;max-height:220px;overflow:auto;z-index:5}
-.emjp button{font-size:24px;padding:4px;border-radius:8px;line-height:1.2}
+.emjp button{font-size:24px;padding:4px;border-radius:8px;line-height:1.2;font-family:var(--emofont)}
+.emj-tabs{grid-column:1/-1;display:flex;gap:2px;position:sticky;top:-8px;background:var(--panel2);padding:2px 0 6px;z-index:1;overflow-x:auto}
+.emj-tabs button{flex:0 0 auto;font-size:20px;padding:4px 8px;border-bottom:2px solid transparent;border-radius:8px 8px 0 0}
+.emj-tabs button.on{border-bottom-color:#c8102e}
+:root{--emofont:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Twemoji Mozilla",sans-serif}
 .vbox{align-items:center;text-align:center}
 #vp-body{display:flex;flex-direction:column;align-items:center;gap:10px}
 .vp-tel{font-size:18px;letter-spacing:.5px;color:var(--txt)}
@@ -346,6 +358,101 @@ html[data-theme="galaxia"] .main::before,html[data-theme="galaxia"] .main::after
 .tiene-estado{outline:3px solid var(--red2);outline-offset:3px}
 .gal-bar{display:block;align-self:stretch;height:6px;border-radius:6px;background:#ffffff18;overflow:hidden;margin-top:2px}
 .gal-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#7c5cff,#c7b6ff);transition:width .8s linear}
+
+/* Features extra ChatStack */
+.vn{width:180px;height:180px;border-radius:50%;overflow:hidden;position:relative;background:#111;border:3px solid var(--red2);box-shadow:0 0 18px var(--glow);cursor:pointer}
+.vn video{width:100%;height:100%;object-fit:cover;display:block;transform:scaleX(-1)}
+.vn .vn-play{position:absolute;inset:0;display:grid;place-items:center;background:#0006;color:#fff;font-size:28px;pointer-events:none}
+.vn.playing .vn-play{display:none}
+.vn-rec{position:fixed;inset:0;z-index:88;display:none;flex-direction:column;align-items:center;justify-content:center;background:#000d;gap:16px}
+.vn-rec.on{display:flex}
+.vn-rec video{width:min(70vw,280px);height:min(70vw,280px);border-radius:50%;object-fit:cover;transform:scaleX(-1);border:4px solid var(--red2)}
+.vn-rec .vn-timer{font-size:18px;color:#fff}
+.vn-rec .vn-stop{width:64px;height:64px;border-radius:50%;background:var(--red2);border:3px solid #fff}
+.vn-rec .vn-cancel{color:#fff;padding:10px 16px}
+.live-loc{min-width:220px;display:flex;flex-direction:column;gap:6px}
+.live-loc .ll-map{height:120px;border-radius:10px;background:linear-gradient(145deg,#1a3a5c,#0a1520);display:grid;place-items:center;position:relative;overflow:hidden;border:1px solid #ffffff22}
+.live-loc .ll-map iframe{position:absolute;inset:0;width:100%;height:100%;border:0;opacity:.85;pointer-events:none}
+.live-loc .ll-dot{width:14px;height:14px;border-radius:50%;background:#2ecc71;box-shadow:0 0 0 6px rgba(46,204,113,.35);animation:llpulse 1.4s ease-in-out infinite;position:relative;z-index:1}
+@keyframes llpulse{0%,100%{box-shadow:0 0 0 4px rgba(46,204,113,.3)}50%{box-shadow:0 0 0 10px rgba(46,204,113,.1)}}
+.live-loc .ll-off .ll-dot{background:#888;animation:none;box-shadow:none}
+.m .reacs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.m .reac{background:#ffffff18;border:1px solid #ffffff22;border-radius:12px;padding:1px 7px;font-size:13px;cursor:pointer}
+.m .reac.mio{border-color:var(--red2);background:var(--tint)}
+.m.destacado{outline:2px solid var(--hi);outline-offset:2px}
+.m .fmt-b{font-weight:700}.m .fmt-i{font-style:italic}.m .fmt-s{text-decoration:line-through}.m .fmt-c{font-family:ui-monospace,monospace;background:#0003;padding:0 4px;border-radius:4px}
+.actsheet{position:fixed;inset:0;z-index:85;display:none;align-items:flex-end;justify-content:center;background:#00000088;padding:12px}
+.actsheet.on{display:flex}
+.actsheet .ash{width:min(420px,100%);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:8px;max-height:80vh;overflow:auto}
+.actsheet .ash b{display:block;padding:10px 12px 6px}
+.actsheet .ash button{display:flex;width:100%;text-align:left;padding:12px;border-radius:10px;color:var(--txt);font-size:15px}
+.actsheet .ash button:hover{background:#ffffff10}
+.actsheet .reacrow{display:flex;gap:6px;padding:8px;justify-content:space-around}
+.actsheet .reacrow button{width:auto;font-size:26px;padding:8px;border-radius:50%;justify-content:center}
+.chsearch{display:none;align-items:center;gap:8px;padding:8px 12px;background:var(--panel2);border-bottom:1px solid var(--line)}
+.chsearch.on{display:flex}
+.chsearch input{flex:1;background:var(--in);border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:9px 12px}
+.pin-badge{margin-right:4px}
+.star-mark{color:#f5c542;margin-left:4px}
+.ggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;width:100%;max-height:45vh;overflow:auto;padding:8px}
+.ggrid video{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;background:#111}
+.onboard{position:fixed;inset:0;z-index:95;display:none;align-items:center;justify-content:center;background:#000c;padding:20px}
+.onboard.on{display:flex}
+.onboard .ob{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:360px;width:100%;text-align:center;display:flex;flex-direction:column;gap:12px}
+
+
+.m .m-meta{display:flex;align-items:center;gap:6px;margin-bottom:2px;flex-wrap:wrap}
+.m .m-author{font-size:12px;font-weight:700;opacity:.95}
+.m .rol-badge{font-size:10px;font-weight:700;padding:1px 7px;border-radius:999px;letter-spacing:.02em;line-height:1.4;border:1px solid transparent}
+.m .rol-admin{background:#c8102e33;color:#ff8a9a;border-color:#c8102e55}
+.m .rol-owner{background:#f5a62333;color:#ffd08a;border-color:#f5a62355}
+.m .rol-mod{background:#3498db33;color:#8fd3ff;border-color:#3498db55}
+.m .rol-vip{background:#9b59b633;color:#d2a8ff;border-color:#9b59b655}
+.m .rol-member{background:#ffffff12;color:#bbb;border-color:#ffffff18}
+.m.out .m-meta{justify-content:flex-end}
+
+
+/* Scroll en menú del chat y orden en info de grupo */
+#chmodal-body{max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;align-items:stretch;width:100%;max-width:360px}
+#chmodal-body b{text-align:center}
+#ginfomodal .cbox{gap:8px;max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+#ginfomodal .cbox>button{padding:11px 14px;font-size:14px;text-align:center}
+#ginfomodal .cbox>b{font-size:18px}
+
+/* ===== Orden general de la página ===== */
+.sec{display:flex;flex-direction:column;gap:8px;padding:12px;background:var(--panel2);border:1px solid var(--line);border-radius:12px}
+.sec-t{font-weight:700;font-size:14px;color:var(--hi);margin-bottom:2px}
+.sec .ajlbl,.sec .lbl{display:flex;align-items:center;gap:8px;margin-top:0;line-height:1.3}
+.sec .ajlbl input[type=checkbox]{flex:none;width:18px;height:18px;accent-color:var(--red2)}
+.sec .btn-a{padding:10px 12px;font-size:14px}
+.sec .btn-a.danger{color:#ff6b84;border-color:#5e0a17}
+#smodal .cbox{gap:12px}
+#smodal .sbox{max-width:420px}
+/* Menú del chat en dos columnas */
+#chmodal-body{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#chmodal-body>b,#chmodal-body>.link{grid-column:1/-1;text-align:center}
+#chmodal-body .btn-a{padding:10px 8px;font-size:13px;line-height:1.25;text-align:center;display:flex;align-items:center;justify-content:center;min-height:44px}
+/* Cajas de diálogo: mismo aire en todas */
+.cbox .btn,.cbox .btn-a{width:100%}
+.cbox .link{align-self:center}
+/* Barra de escribir: el campo arriba y los iconos en una fila debajo (móvil) */
+@media(max-width:720px){
+ .bar{flex-wrap:nowrap;align-items:center;gap:6px}
+ .bar #emj{order:1;flex:none;width:40px;height:40px}
+ .bar #inp{order:2;flex:1 1 auto;min-width:0}
+ .bar .rec{order:3;flex:none;width:40px;height:40px;max-width:none}
+ .bar .send{order:4;flex:none}
+}
+.list .row{align-items:center}
+.estados{padding:10px 12px}
+
+/* --- v17: paneles con scroll y sticker de emojis --- */
+#ginfomodal .cbox,#linkmodal .cbox{max-height:88vh;max-height:88dvh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+#ginfomodal .cbox>*,#linkmodal .cbox>*{flex-shrink:0}
+#ginfo-link{display:flex;align-items:center;justify-content:center}
+.bar #emj{padding:4px!important;width:40px;height:40px;flex:none}
+#emj svg.stk{width:32px;height:32px;stroke:none;fill:none;display:block;filter:drop-shadow(0 2px 3px #0008);transition:transform .15s}
+#emj:hover svg.stk,#emj:active svg.stk{transform:rotate(-8deg) scale(1.08)}
 </style>
 </head>
 <body>
@@ -376,6 +483,7 @@ html[data-theme="galaxia"] .main::before,html[data-theme="galaxia"] .main::after
     <label class="lbl" for="pstat">Estado</label>
     <input class="fld" id="pstat" value="Disponible" maxlength="60">
     <input class="fld" type="time" id="pstatHasta" title="Hasta qué hora dura el estado">
+    <button class="btn-a" id="bsoporte" type="button">💬 Soporte</button>
     <button class="btn-a" id="blogout" type="button">Cerrar sesión</button>
     <div class="lbl">Tema</div>
     <div class="themes">
@@ -413,7 +521,6 @@ html[data-theme="galaxia"] .main::before,html[data-theme="galaxia"] .main::after
  <div class="cself" id="cself" hidden><video id="lvid" muted autoplay playsinline></video></div>
  <div class="cbtns">
   <button class="cb" id="cmic" aria-label="Micrófono"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></button>
-  <button class="cb" id="cshare" aria-label="Compartir pantalla"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></button>
   <button class="cb end" id="cend" aria-label="Colgar"><svg viewBox="0 0 24 24"><path d="M3 14c4-4 14-4 18 0l-2 3-4-1v-2c-2-1-6-1-8 0v2l-4 1z"/></svg></button>
   <button class="cb" id="ccam" aria-label="Cámara"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="M16 10l5-3v10l-5-3"/></svg></button>
  </div>
@@ -459,39 +566,57 @@ html[data-theme="galaxia"] .main::before,html[data-theme="galaxia"] .main::after
 <div class="cmodal" id="smodal" role="dialog" aria-modal="true">
  <div class="cbox sbox">
   <b>Ajustes</b>
-  <label class="lbl" for="stono">Sonido de llamada</label>
-  <div class="srow"><select class="fld" id="stono"><option value="clasico">Clásico</option><option value="campanilla">Campanilla</option><option value="pulsos">Pulsos</option><option value="suave">Suave</option></select><button class="btn-a" id="stest" type="button">Probar</button></div>
-  <label class="lbl">Cámara</label>
-  <video id="svid" autoplay playsinline muted class="svid" hidden></video>
-  <button class="btn-a" id="scam" type="button">Probar cámara</button>
-  <label class="ajlbl"><input type="checkbox" id="sdnd"> No molestar (no suenan las llamadas en este horario)</label>
-  <div class="srow"><input class="fld" type="time" id="sdesde" value="23:00"><input class="fld" type="time" id="shasta" value="08:00"></div>
-  <label class="ajlbl"><input type="checkbox" id="socultar"> No enviar confirmación de lectura</label>
-  <label class="ajlbl"><input type="checkbox" id="sfotopriv"> Mi foto de perfil solo para contactos</label>
-  <label class="ajlbl" for="stema">Tema de la app (solo en este móvil)</label>
-  <select class="fld" id="stema"><option value="azul">Blanco y azul</option><option value="negro">Negro</option></select>
-  <label class="ajlbl"><input type="checkbox" id="sdecir"> Decir el nombre de quien te llama</label>
-  <label class="ajlbl"><input type="checkbox" id="svoz"> Activar bandeja de voz (quien te llame escucha tu mensaje y la llamada se corta sola)</label>
-  <button class="btn-a" id="sgrabar" type="button">Grabar mensaje</button>
-  <small id="sestado" class="ajlbl"></small>
-  <button class="btn-a" id="sborrarsaludo" type="button">Borrar saludo</button>
-  <label class="ajlbl"><input type="checkbox" id="svibrar"> Vibrar en llamadas y mensajes</label>
-  <label class="ajlbl"><input type="checkbox" id="sahorro"> Ahorro de datos (no cargar fotos hasta tocarlas)</label>
-  <label class="ajlbl" for="sfondo">Fondo del chat</label>
-  <select class="fld" id="sfondo"><option value="normal">Normal</option><option value="rojo">Rojo y negro</option><option value="azul">Azul oscuro</option><option value="puntos">Puntos</option></select>
-  <label class="ajlbl" for="sletra">Tamaño de letra</label>
-  <select class="fld" id="sletra"><option value="normal">Normal</option><option value="pequena">Pequeña</option><option value="grande">Grande</option></select>
-  <label class="ajlbl" for="splant">Respuestas rápidas (una por línea)</label>
-  <textarea class="fld" id="splant"></textarea>
-  <button class="btn-a" id="scontra" type="button">Cambiar contraseña</button>
-  <button class="btn-a" id="scerrarsesion" type="button">Cerrar sesión</button>
-  <button class="btn-a" id="sborrarlocal" type="button">Borrar datos de este dispositivo</button>
-  <button class="btn-a" id="seliminar" type="button">Eliminar mi cuenta</button>
-  <button class="btn-a" id="sstats" type="button">Mis estadísticas</button>
-  <button class="btn-a" id="sexportar" type="button">Exportar mis chats (copia)</button>
-  <button class="btn-a" id="scerrarotros" type="button">Cerrar sesión en otros dispositivos</button>
-  <button class="btn-a" id="smode" type="button">Cambiar a modo claro</button>
-  <button class="btn-a" id="snot" type="button">Activar notificaciones</button>
+
+  <div class="sec"><div class="sec-t">🔔 Llamadas y avisos</div>
+   <label class="lbl" for="stono">Sonido de llamada</label>
+   <div class="srow"><select class="fld" id="stono"><option value="clasico">Clásico</option><option value="campanilla">Campanilla</option><option value="pulsos">Pulsos</option><option value="suave">Suave</option></select><button class="btn-a" id="stest" type="button">Probar</button></div>
+   <label class="ajlbl"><input type="checkbox" id="sdecir"> Decir el nombre de quien te llama</label>
+   <label class="ajlbl"><input type="checkbox" id="svibrar"> Vibrar en llamadas y mensajes</label>
+   <button class="btn-a" id="snot" type="button">Activar notificaciones</button>
+   <label class="ajlbl"><input type="checkbox" id="sdnd"> No molestar (no suenan las llamadas en este horario)</label>
+   <div class="srow"><input class="fld" type="time" id="sdesde" value="23:00"><input class="fld" type="time" id="shasta" value="08:00"></div>
+  </div>
+
+  <div class="sec"><div class="sec-t">🔒 Privacidad y bandeja de voz</div>
+   <label class="ajlbl"><input type="checkbox" id="socultar"> No enviar confirmación de lectura</label>
+   <label class="ajlbl"><input type="checkbox" id="sfotopriv"> Mi foto de perfil solo para contactos</label>
+   <label class="ajlbl"><input type="checkbox" id="svoz"> Activar bandeja de voz (quien te llame escucha tu mensaje y la llamada se corta sola)</label>
+   <button class="btn-a" id="sgrabar" type="button">Grabar mensaje</button>
+   <small id="sestado" class="ajlbl"></small>
+   <button class="btn-a" id="sborrarsaludo" type="button">Borrar saludo</button>
+  </div>
+
+  <div class="sec"><div class="sec-t">🎨 Apariencia</div>
+   <button class="btn-a" id="smode" type="button">Cambiar a modo claro</button>
+   <label class="ajlbl" for="stema">Tema de la app (solo en este móvil)</label>
+   <select class="fld" id="stema"><option value="azul">Blanco y azul</option><option value="negro">Negro</option></select>
+   <label class="ajlbl" for="sfondo">Fondo del chat</label>
+   <select class="fld" id="sfondo"><option value="normal">Normal</option><option value="rojo">Rojo y negro</option><option value="azul">Azul oscuro</option><option value="puntos">Puntos</option></select>
+   <label class="ajlbl" for="sletra">Tamaño de letra</label>
+   <select class="fld" id="sletra"><option value="normal">Normal</option><option value="pequena">Pequeña</option><option value="grande">Grande</option></select>
+   <label class="ajlbl"><input type="checkbox" id="sahorro"> Ahorro de datos (no cargar fotos hasta tocarlas)</label>
+  </div>
+
+  <div class="sec"><div class="sec-t">💬 Mensajes</div>
+   <label class="ajlbl" for="splant">Respuestas rápidas (una por línea)</label>
+   <textarea class="fld" id="splant"></textarea>
+  </div>
+
+  <div class="sec"><div class="sec-t">📷 Cámara</div>
+   <video id="svid" autoplay playsinline muted class="svid" hidden></video>
+   <button class="btn-a" id="scam" type="button">Probar cámara</button>
+  </div>
+
+  <div class="sec"><div class="sec-t">👤 Cuenta y datos</div>
+   <button class="btn-a" id="sstats" type="button">Mis estadísticas</button>
+   <button class="btn-a" id="sexportar" type="button">Exportar mis chats (copia)</button>
+   <button class="btn-a" id="scontra" type="button">Cambiar contraseña</button>
+   <button class="btn-a" id="scerrarotros" type="button">Cerrar sesión en otros dispositivos</button>
+   <button class="btn-a" id="scerrarsesion" type="button">Cerrar sesión</button>
+   <button class="btn-a danger" id="sborrarlocal" type="button">Borrar datos de este dispositivo</button>
+   <button class="btn-a danger" id="seliminar" type="button">Eliminar mi cuenta</button>
+  </div>
+
   <button class="link" id="scerrar" type="button">Cerrar</button>
  </div>
 </div>
@@ -566,9 +691,50 @@ html[data-theme="galaxia"] .main::before,html[data-theme="galaxia"] .main::after
   <button class="link" id="estlist-cerrar" type="button">Cerrar</button>
  </div>
 </div>
+<div class="cmodal" id="ginfomodal" role="dialog"><div class="cbox sbox"><b id="ginfo-title">Grupo</b><small id="ginfo-role" style="display:block;margin-bottom:4px;color:var(--mute)"></small><div id="ginfolista" style="max-height:34vh;overflow:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:4px"></div><button class="btn" id="ginfo-link" type="button">🔗 Enlace de invitación</button><div id="ginfo-linkbox" hidden style="padding:10px;background:var(--panel2);border-radius:10px;word-break:break-all"><small>Enlace (cópialo y compártelo):</small><input class="fld" id="ginfo-linkval" readonly style="margin-top:6px;font-size:12px"><button class="btn-a" id="ginfo-copy" type="button" style="margin-top:6px;width:100%">Copiar enlace</button></div><button class="btn-a" id="ginfo-add" type="button">➕ Añadir contactos</button><button class="btn-a" id="ginfo-code" type="button" hidden>🔑 Poner / cambiar código</button><button class="btn-a" id="ginfo-ren" type="button" hidden>✏️ Renombrar grupo</button><button class="btn-a" id="ginfo-cd" type="button">⏱️ Cooldown de mensajes</button><button class="btn-a" id="ginfo-leave" type="button">Salir del grupo</button><button class="link" id="ginfo-cerrar" type="button">Cerrar</button></div></div>
 <div class="cmodal" id="chmodal" role="dialog" aria-modal="true">
  <div class="cbox vbox" id="chmodal-body"></div>
 </div>
+<div class="cmodal" id="pollmodal" role="dialog" aria-modal="true">
+ <div class="cbox sbox">
+  <b>Nueva encuesta</b>
+  <input class="fld" id="plq" placeholder="Pregunta" maxlength="120" autocomplete="off">
+  <div id="plopts" style="display:flex;flex-direction:column;gap:8px"></div>
+  <button class="btn-a" id="pladd" type="button">Añadir opción</button>
+  <button class="btn" id="plpub" type="button">Enviar encuesta</button>
+  <button class="link" id="plcancel" type="button">Cancelar</button>
+ </div>
+</div>
+
+<div class="vn-rec" id="vnrec"><video id="vnprev" autoplay muted playsinline></video><div class="vn-timer" id="vntimer">0:00</div><div style="display:flex;gap:16px;align-items:center"><button type="button" class="vn-cancel" id="vncancel">Cancelar</button><button type="button" class="vn-stop" id="vnstop" aria-label="Parar"></button></div><small style="color:#aaa">Máx. 60 s</small></div>
+<div class="cmodal" id="livemodal" role="dialog"><div class="cbox"><b>Ubicación en vivo</b><button class="btn" type="button" data-live="15">15 minutos</button><button class="btn-a" type="button" data-live="60">1 hora</button><button class="btn-a" type="button" data-live="480">8 horas</button><button class="btn-a" type="button" data-live="0">Solo punto actual</button><button class="link" id="livecerrar" type="button">Cancelar</button></div></div>
+<div class="cmodal" id="sopmodal" role="dialog"><div class="cbox sbox" style="max-width:420px;height:min(78vh,640px);display:flex;flex-direction:column;padding:0;overflow:hidden"><div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--panel2);border-bottom:1px solid var(--line)"><div class="av r" style="width:40px;height:40px;font-size:16px">CS</div><div style="flex:1"><b>Soporte ChatStack</b><small style="display:block;color:var(--mute)">Ayuda automática</small></div><button class="ic" id="sopcerrar" type="button">×</button></div><div id="sopmsgs" style="flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:6px"></div><div id="sopchips" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;border-top:1px solid var(--line)"></div><form id="sopform" style="display:flex;gap:6px;padding:10px 12px;background:var(--panel2)"><input class="fld" id="sopinp" placeholder="Escribe tu duda…" style="flex:1;border-radius:22px;padding:11px 16px"><button class="send" type="submit"><svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-3-7-7-1z"/></svg></button></form></div></div>
+<div class="actsheet" id="actsheet"><div class="ash" id="actsheet-body"></div></div>
+<div class="cmodal" id="fwdmodal" role="dialog"><div class="cbox sbox"><b>Reenviar a…</b><input class="fld" id="fwdq" placeholder="Buscar chat"><div id="fwdlista" style="max-height:50vh;overflow:auto;display:flex;flex-direction:column;gap:4px;margin-top:8px"></div><button class="link" id="fwdcerrar" type="button">Cancelar</button></div></div>
+<div class="cmodal" id="mediomodal" role="dialog"><div class="cbox sbox"><b>Medios del chat</b><div id="mediolista" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-height:60vh;overflow:auto"></div><button class="link" id="mediocerrar" type="button">Cerrar</button></div></div>
+<div class="cmodal" id="invitemodal" role="dialog" aria-modal="true">
+ <div class="cbox" style="text-align:center;max-width:360px">
+  <img id="invite-foto" alt="" style="width:72px;height:72px;border-radius:16px;object-fit:cover;margin:0 auto 10px;display:none;background:#222">
+  <div class="av r" id="invite-av" style="width:72px;height:72px;font-size:28px;margin:0 auto 10px">G</div>
+  <b id="invite-title">Invitación a grupo</b>
+  <p class="sub" id="invite-sub" style="text-align:center">¿Quieres unirte a este grupo?</p>
+  <button class="btn" id="invite-yes" type="button">Sí, unirme</button>
+  <button class="btn-a" id="invite-no" type="button">No, gracias</button>
+  <button class="link" id="invite-cerrar" type="button">Cerrar</button>
+ </div>
+</div>
+<div class="cmodal" id="linkmodal" role="dialog" aria-modal="true"><div class="cbox">
+  <b>🔗 Enlace de invitación</b>
+  <p class="sub" style="text-align:left">Elige cuántos días será válido. Al generarlo se copia solo al portapapeles.</p>
+  <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn-a" type="button" data-lkd="1" style="width:auto;padding:6px 12px">1 día</button><button class="btn-a" type="button" data-lkd="7" style="width:auto;padding:6px 12px">7 días</button><button class="btn-a" type="button" data-lkd="30" style="width:auto;padding:6px 12px">30 días</button><button class="btn-a" type="button" data-lkd="0" style="width:auto;padding:6px 12px">Sin caducidad</button></div>
+  <input class="fld" id="lk-dias" type="number" min="0" max="365" value="7" inputmode="numeric" placeholder="Días de validez (0 = sin caducidad)">
+  <button class="btn" id="lk-gen" type="button">Generar y copiar enlace</button>
+  <div id="lk-out" hidden><small id="lk-info" style="color:var(--mute)"></small><input class="fld" id="lk-val" readonly style="margin-top:6px;font-size:12px"><button class="btn-a" id="lk-copy" type="button" style="margin-top:6px">Copiar otra vez</button></div>
+  <button class="link" id="lk-cerrar" type="button">Cerrar</button>
+</div></div>
+<div class="cmodal" id="joinmodal" role="dialog"><div class="cbox"><b>Unirse a un grupo</b><p class="sub" style="text-align:left">Escribe el código que te compartieron (1–5 caracteres).</p><input class="fld" id="joincod" maxlength="5" placeholder="Código" autocomplete="off"><small id="joinmsg" style="color:#c8102e"></small><button class="btn" id="joinok" type="button">Entrar</button><button class="link" id="joincerrar" type="button">Cancelar</button></div></div>
+<div class="onboard" id="onboard"><div class="ob"><b>Bienvenido a ChatStack</b><p class="sub" id="obtxt">Chats, estados, llamadas, grupos y más.</p><button class="btn" id="obnext" type="button">Siguiente</button><button class="link" id="obskip" type="button">Saltar</button></div></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <script>
 const $=s=>document.querySelector(s);
@@ -577,6 +743,8 @@ const TK1='<svg viewBox="0 0 24 24"><path d="M3 13l4 4L17 7"/></svg>';
 const TK2='<svg viewBox="0 0 24 24"><path d="M2 13l4 4L15 7M10 15l2 2L21 7"/></svg>';
 const BAN='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>';
 const PIC='<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M4 18l5-5 4 4 2-2 5 5"/></svg>';
+const votosPoll={}; // {idMensaje:{idUsuario:numeroOpcion}}
+const EMOJIS=["😀","😁","😂","🤣","😊","😍","😘","😎","🤔","😅","😢","😭","😡","🥳","😴","🤗","🙄","😬","👍","👎","👏","🙌","🙏","💪","👋","🤝","❤️","💔","🔥","✨","🎉","💯","✅","❌","⭐","🎂","🍕","☕","🎶","📞","💬","👀","😉","😇","🤩","😜","🥺","😱","🤯","🙈","🌹","🎁","🍻","⚽","🚗","🏠"];
 const WAVE=Array.from({length:26},(_,i)=>`<b style="--h:${5+(i*37)%16}px;--dl:${(i%7)*.08}s"></b>`).join("");
 const STK=["r1","r2","k1","k2"].map(id=>`<button data-sid="${id}" aria-label="Sticker"><svg viewBox="0 0 64 64"><use href="#s${id}"/></svg></button>`).join("");
 // ---------- Supabase ----------
@@ -590,12 +758,28 @@ const me={id:null,name:"Tú",status:"Disponible",photo:null};
 let chats=[],people=[],contacts=[],curId=null,filter="Todos",replyTo=null,reg=false,started=false,chan=null,searchT=null;
 const list=$("#list"),main=$("#main"),app=$("#app");
 
+let reacciones=(()=>{try{return JSON.parse(localStorage.getItem("cs_reacs")||"{}")}catch(e){return {}}})();
+let mensajesDestacados=new Set((()=>{try{return JSON.parse(localStorage.getItem("cs_stars")||"[]")}catch(e){return []}})());
+let cooldownGrupo=(()=>{try{return JSON.parse(localStorage.getItem("cs_cooldown")||"{}")}catch(e){return {}}})();
+function guardarCooldown(){try{localStorage.setItem("cs_cooldown",JSON.stringify(cooldownGrupo))}catch(e){}}
+let lastSentAt={};
+let chatsAnclados=(()=>{try{return JSON.parse(localStorage.getItem("cs_pins")||"[]")}catch(e){return []}})();
+let noLeidosForzados=(()=>{try{return JSON.parse(localStorage.getItem("cs_unread")||"{}")}catch(e){return {}}})();
+let efimeros=(()=>{try{return JSON.parse(localStorage.getItem("cs_efimero")||"{}")}catch(e){return {}}})();
+function guardarReacs(){try{localStorage.setItem("cs_reacs",JSON.stringify(reacciones))}catch(e){}}
+function guardarStars(){try{localStorage.setItem("cs_stars",JSON.stringify([...mensajesDestacados]))}catch(e){}}
+function guardarPins(){try{localStorage.setItem("cs_pins",JSON.stringify(chatsAnclados))}catch(e){}}
+function guardarUnread(){try{localStorage.setItem("cs_unread",JSON.stringify(noLeidosForzados))}catch(e){}}
+function guardarEfimeros(){try{localStorage.setItem("cs_efimero",JSON.stringify(efimeros))}catch(e){}}
+const REAC_EMOJIS=["👍","❤️","😂","😮","😢","🙏","🔥","👏"];
+
+
 // ---------- Utilidades ----------
 const initial=s=>(String(s||"?").trim()[0]||"?").toUpperCase();
 const hm=iso=>{const d=new Date(iso);return d.getHours()+":"+String(d.getMinutes()).padStart(2,"0")};
 const now=()=>hm(new Date());
 const curChat=()=>chats.find(c=>c.id===curId);
-const prev=m=>m.type==="call"?"Llamada":m.type==="voice"?"Nota de voz":m.type==="image"?"Foto":m.type==="sticker"?"Sticker":m.type==="deleted"?"Mensaje eliminado":(m.x||"");
+const prev=m=>m.type==="call"?"Llamada":m.type==="voice"?"Nota de voz":m.type==="video_note"?"Nota de vídeo":m.type==="live_location"?"Ubicación en vivo":m.type==="image"?"Foto":m.type==="sticker"?"Sticker":m.type==="deleted"?"Mensaje eliminado":m.type==="poll"?"📊 "+(m.poll?.q||m.x||"Encuesta"):(m.x||"");
 function toast(t){
  const d=document.createElement("div");d.textContent=t;
  d.style.cssText="position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);padding:10px 16px;border-radius:12px;z-index:90;max-width:90%;font-size:14px";
@@ -619,9 +803,9 @@ function setErr(t,kind="err"){
 }
 function explain(err){
  const m=(err?.message||"").toLowerCase(),code=err?.code||"";
- if(m.includes("invalid login"))return "Correo o contraseña incorrectos.";
+ if(m.includes("invalid login"))return "Usuario o contraseña incorrectos.";
  if(m.includes("email not confirmed"))return "Tu cuenta aún no está activa. Contacta con el administrador de la app.";
- if(m.includes("already registered")||code==="user_already_exists")return "Ese correo ya tiene una cuenta. Inicia sesión.";
+ if(m.includes("already registered")||code==="user_already_exists")return "Ese usuario ya existe. Inicia sesión.";
  if(m.includes("password"))return "La contraseña debe tener al menos 6 caracteres.";
  if(m.includes("rate limit")||code==="over_email_send_rate_limit")return "Demasiados intentos. Espera unos minutos.";
  if(m.includes("failed to fetch")||m.includes("network"))return "Sin conexión con el servidor. Revisa tu red.";
@@ -637,13 +821,16 @@ function empty(){main.innerHTML='<div class="empty"><svg class="logo" viewBox="0
 
 // ---------- Mensajes: conversión desde la base de datos ----------
 function toMsg(r){
- const m={id:r.id,k:r.sender_id===me.id?"out":"in",h:hm(r.created_at),s:"d",at:r.created_at,replyId:r.reply_to,q:null};
+ const m={id:r.id,uid:r.sender_id,k:r.sender_id===me.id?"out":"in",h:hm(r.created_at),s:"d",at:r.created_at,replyId:r.reply_to,q:null};
  switch(r.kind){
   case "text": m.x=r.body;break;
   case "image": m.type="image";m.path=r.media_path;m.cap="";break;
   case "voice": m.type="voice";m.dur="";m.path=r.media_path;break;
+  case "video_note": m.type="video_note";m.path=r.media_path;m.dur=r.body||"";break;
+  case "live_location":{m.type="live_location";try{m.live=typeof r.body==="string"?JSON.parse(r.body):(r.body||{})}catch(e){m.live={}}m.x="Ubicación en vivo";break;}
   case "sticker": m.type="sticker";m.sid=r.sticker_id;break;
   case "call": m.type="call";m.missed=r.call_missed;m.dur=r.call_duration_s?fmt(r.call_duration_s):"";break;
+  case "poll": m.type="poll";m.poll=r.poll||null;m.x=r.body;break;
   case "deleted": m.type="deleted";break;
  }
  return m;
@@ -651,20 +838,90 @@ function toMsg(r){
 function quoteFor(c,m){
  if(!m.replyId)return null;
  const p=c.m.find(x=>x.id===m.replyId);
- return p?{who:p.k==="out"?"Tú":(c.isGroup?"Mensaje":c.n),x:prev(p)}:null;
+ return p?{who:p.k==="out"?"Tú":(c.isGroup?(infoMiembroGrupo(p.uid)?.name||"Miembro"):c.n),x:prev(p)}:null;
 }
+function linkify(t){
+ return esc(t).replace(/https?:\/\/[^\s<]+/g,u=>{
+  const limpio=u.replace(/[),.;!?]+$/,"");
+  const resto=u.slice(limpio.length);
+  return `<a href="${limpio}" target="_blank" rel="noopener noreferrer">${limpio}</a>${resto}`;
+ });
+}
+
+function etiquetaRol(role){
+ const r=String(role||"member").toLowerCase();
+ if(r==="owner")return {txt:"Owner",cls:"rol-owner"};
+ if(r==="admin")return {txt:"Admin",cls:"rol-admin"};
+ if(r==="moderador"||r==="mod")return {txt:"Mod",cls:"rol-mod"};
+ if(r==="vip")return {txt:"VIP",cls:"rol-vip"};
+ return {txt:"Miembro",cls:"rol-member"};
+}
+function infoMiembroGrupo(uid){
+ const c=curChat();
+ if(!c||!c.isGroup)return null;
+ if(uid===me.id)return {name:"Tú",role:c.myRole||"member"};
+ const mf=(c.membersFull||[]).find(x=>x.id===uid);
+ if(mf){
+  const name=mf.profile?.display_name||mf.profile?.name||"Usuario";
+  return {name,role:mf.role||"member",roleName:mf.roleName||null,color:mf.roleColor||null};
+ }
+ const mem=(c.members||[]).find(x=>x.id===uid);
+ if(mem)return {name:mem.display_name||"Usuario",role:"member"};
+ return {name:"Usuario",role:"member"};
+}
+function htmlMetaGrupo(m){
+ const c=curChat();
+ if(!c||!c.isGroup)return "";
+ // en grupos: nombre + rol (entrantes siempre; salientes solo rol pequeño)
+ const info=infoMiembroGrupo(m.uid|| (m.k==="out"?me.id:null));
+ if(!info)return "";
+ const er=etiquetaRol(info.roleName||info.role);
+ const label=info.roleName||er.txt;
+ const cls=info.roleName? (String(info.roleName).toLowerCase().includes("admin")?"rol-admin":String(info.roleName).toLowerCase().includes("vip")?"rol-vip":String(info.roleName).toLowerCase().includes("mod")?"rol-mod":er.cls) : er.cls;
+ const style=info.color?` style="border-color:${esc(info.color)}55;color:${esc(info.color)};background:${esc(info.color)}22"`:"";
+ if(m.k==="out"){
+  return `<div class="m-meta"><span class="rol-badge ${cls}"${style}>${esc(label)}</span></div>`;
+ }
+ return `<div class="m-meta"><span class="m-author">${esc(info.name)}</span><span class="rol-badge ${cls}"${style}>${esc(label)}</span></div>`;
+}
+
 function bub(m){
  let body;
  if(m.type==="deleted") body=`<span class="del">${BAN}Este mensaje fue eliminado</span>`;
- else if(m.type==="image") body=m.path?(ahorro()&&!vistos.has(m.id)?`<button class="btn-a" data-ver="${m.id}" type="button">Ver foto</button>`:`<img class="foto" src="${urlFoto(m.path)}" alt="Foto">`):`<div class="img"><div class="ph">${PIC}</div>${m.cap?`<div class="cap">${esc(m.cap)}</div>`:""}</div>`;
+ else if(m.type==="image") body=m.path?(ahorro()&&!vistos.has(m.id)?`<button class="btn-a" data-ver="${esc(m.id)}" type="button">Ver foto</button>`:`<img class="foto" src="${esc(urlFoto(m.path))}" alt="Foto">`):`<div class="img"><div class="ph">${PIC}</div>${m.cap?`<div class="cap">${esc(m.cap)}</div>`:""}</div>`;
  else if(m.type==="voice") body=`<div class="voice"><button class="play" data-path="${esc(m.path||"")}" aria-label="Reproducir">${iconoPlay()}</button><div class="wave">${WAVE}</div><span class="dur">${m.dur||""}</span></div>`;
- else if(m.type==="call") body=`<div class="clog"><div><b>Llamada</b><small>${m.missed?"Sin respuesta":"Duración "+m.dur}</small></div></div>`;
- else if(m.type==="sticker") body=`<svg class="stk-img" viewBox="0 0 64 64"><use href="#s${m.sid}"/></svg>`;
- else body=esc(m.x||"");
+ else if(m.type==="video_note") body=`<div class="vn" data-vn="${esc(m.path||"")}"><video src="${esc(urlVideo(m.path))}" playsinline muted loop preload="metadata"></video><div class="vn-play">▶</div></div>`;
+ else if(m.type==="live_location") body=htmlLiveLoc(m);
+ else if(m.type==="call") body=`<div class="clog"><div><b>Llamada</b><small>${m.missed?"Sin respuesta":"Duración "+(m.dur||"00:00")}</small></div></div>`;
+ else if(m.type==="poll"&&m.poll&&Array.isArray(m.poll.options)){
+  const vs=votosPoll[m.id]||{};
+  const total=Object.keys(vs).length;
+  const mio=vs[me.id];
+  const ops=m.poll.options.map((t,i)=>{
+   const nv=Object.values(vs).filter(x=>x===i).length;
+   const p=total?Math.round(nv*100/total):0;
+   return `<button class="po${mio===i?" on":""}" data-voto="${esc(m.id)}:${i}" type="button"><i style="--p:${p}%"></i><span>${mio===i?"✓ ":""}${esc(t)}</span><span>${nv}</span></button>`;
+  }).join("");
+  body=`<div class="poll"><b>📊 ${esc(m.poll.q||m.x||"")}</b>${ops}<small>${total} voto${total===1?"":"s"}${mio===undefined?" · toca para votar":""}</small></div>`;
+ }
+ else if(m.type==="sticker") body=`<svg class="stk-img" viewBox="0 0 64 64"><use href="#s${esc(m.sid||"")}"/></svg>`;
+ else body=`<span class="bt">${fmtTexto(m.x||"")}</span>`;
  const q=m.q?`<div class="quote"><b>${esc(m.q.who)}</b>${esc(m.q.x)}</div>`:"";
  const tk=m.k==="out"&&m.type!=="deleted"&&m.type!=="call"?`<i class="tk ${m.s}">${m.s==="s"?TK1:TK2}</i>`:"";
- return `<div class="m ${m.k} ${m.type||""}" data-id="${m.id}">${q}${body}<span class="t">${m.h}${tk}</span></div>`;
+ const reacs=htmlReacciones(m.id);
+ const star=mensajesDestacados.has(m.id)?'<span class="star-mark">★</span>':"";
+ return `<div class="m ${m.k} ${m.type?"t_"+m.type:""}${mensajesDestacados.has(m.id)?" destacado":""}" data-id="${esc(m.id)}">${q}${body}${reacs}<span class="t">${m.h}${star}${tk}</span></div>`;
 }
+function fmtTexto(t){
+ let s=linkify(t);
+ s=s.replace(/\*([^*\n]+)\*/g,'<span class=\"fmt-b\">$1</span>');
+ s=s.replace(/_([^_\n]+)_/g,'<span class=\"fmt-i\">$1</span>');
+ s=s.replace(/~([^~\n]+)~/g,'<span class=\"fmt-s\">$1</span>');
+ s=s.replace(/`([^`\n]+)`/g,'<span class=\"fmt-c\">$1</span>');
+ return s;
+}
+function htmlReacciones(mid){const map=reacciones[mid];if(!map||!Object.keys(map).length)return "";return `<div class="reacs">${Object.entries(map).map(([em,uids])=>`<button type="button" class="reac${uids.includes(me.id)?" mio":""}" data-reac="${esc(mid)}:${esc(em)}">${em} ${uids.length}</button>`).join("")}</div>`}
+
 function fmt(s){return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")}
 
 // ---------- Carga de datos ----------
@@ -692,16 +949,23 @@ async function loadProfile(metaUsuario){
 async function loadChats(){
  reaplicarApodos();
  const {data:mem,error}=await sb.from("conversation_members")
-  .select("conversation_id,last_read_at,conversations(id,is_group,title,created_at)")
+  .select("conversation_id,last_read_at,role,conversations(id,is_group,title,created_at)")
   .eq("user_id",me.id);
  if(error)return toast(error.message);
  const rows=mem.filter(r=>r.conversations);
  const ids=rows.map(r=>r.conversation_id);
+ window._grpCreador=window._grpCreador||{};
+ if(ids.length){try{const {data:cb,error:ecb}=await sb.from("conversations").select("id,created_by").in("id",ids);if(!ecb&&cb)cb.forEach(x=>{if(x.created_by)window._grpCreador[x.id]=x.created_by})}catch(e){}}
  let others=[];
  if(ids.length){
-  const res=await sb.from("conversation_members")
-   .select("conversation_id,user_id,last_read_at,profiles(id,display_name,avatar_url,status,last_seen)")
+  let res=await sb.from("conversation_members")
+   .select("conversation_id,user_id,last_read_at,role,profiles(id,display_name,avatar_url,status,last_seen)")
    .in("conversation_id",ids);
+  if(res.error){
+   res=await sb.from("conversation_members")
+    .select("conversation_id,user_id,last_read_at,role,profiles(id,display_name,avatar_url,status)")
+    .in("conversation_id",ids);
+  }
   others=res.data||[];
  }
  chats=await Promise.all(rows.map(async r=>{
@@ -715,9 +979,12 @@ async function loadChats(){
   ]);
   const lr=lastRes.data?.[0];
   const old=chats.find(x=>x.id===c.id);
+  const memRows=others.filter(o=>o.conversation_id===c.id);
+  const miRol=r.role||"member";
+  const membersFull=memRows.map(o=>({id:o.user_id,role:o.role||"member",profile:o.profiles})).filter(x=>x.id);
   return {
    id:c.id,isGroup:c.is_group,n:name,c:initial(name),
-   other:c.is_group?null:(members[0]||null),members,
+   other:c.is_group?null:(members[0]||null),members,membersFull,myRole:miRol,
    u:unreadRes.count||0,
    last:lr?((lr.sender_id===me.id?"Tú: ":"")+prev(toMsg(lr))):"",
    t:lr?hm(lr.created_at):"",
@@ -739,6 +1006,10 @@ async function openChat(id){
  const c=curChat();if(!c||curId!==id)return;
  c.m=data.reverse().map(toMsg);
  c.m.forEach(m=>m.q=quoteFor(c,m));
+ if(c.isGroup)await refrescarRolesGrupo(c);
+ await cargarVotos(c);
+ if(curId!==id)return;
+ if(efimeros[id]){const limite=Date.now()-efimeros[id]*3600*1000;c.m=c.m.filter(m=>!m.at||new Date(m.at).getTime()>=limite)}
  c.u=0;
  renderChat(c);drawList();markRead(id);
 }
@@ -748,6 +1019,7 @@ window.addEventListener("popstate",()=>{
  if(app.classList.contains("chat")&&!(history.state&&history.state.chat))leaveChat();
 });
 async function markRead(id){
+ if(noLeidosForzados[id]){delete noLeidosForzados[id];guardarUnread()}
  if(localStorage.getItem("cs_ocultarleido")==="1")return;
  const {error}=await sb.rpc("mark_conversation_read",{conv:id});
  if(error)console.warn(error.message);
@@ -761,30 +1033,117 @@ function onNewMsg(r){
  const m=toMsg(r);
  m.q=quoteFor(c,m);
  c.m.push(m);
+ if(m.k==="in"&&ocultos.includes(c.id)){ocultos=ocultos.filter(x=>x!==c.id);try{localStorage.setItem("cs_ocultos",JSON.stringify(ocultos))}catch(e){}}
  c.lastAt=r.created_at;c.t=m.h;
  c.last=(m.k==="out"?"Tú: ":"")+prev(m);
  if(curId===c.id){
   const ms=$("#ms");
-  if(ms){ms.insertAdjacentHTML("beforeend",bub(m));ms.scrollTop=ms.scrollHeight}
+  if(ms){mostrarEscribiendo(false);ms.insertAdjacentHTML("beforeend",bub(m));ms.scrollTop=ms.scrollHeight}
   c.u=0;markRead(c.id);
  }else if(m.k==="in"){c.u++}
  drawList();
 }
 
+// ---------- Encuestas ----------
+async function cargarVotos(c){
+ const ids=c.m.filter(m=>m.type==="poll").map(m=>m.id);
+ if(!ids.length)return;
+ const {data,error}=await sb.from("poll_votes").select("message_id,user_id,option_idx").in("message_id",ids);
+ if(error){console.warn("No se cargaron los votos:",error.message);return}
+ ids.forEach(id=>{votosPoll[id]={}});
+ (data||[]).forEach(v=>{votosPoll[v.message_id][v.user_id]=v.option_idx});
+}
+async function votar(mid,idx){
+ const vs=votosPoll[mid]||(votosPoll[mid]={});
+ const antes=vs[me.id];
+ let error;
+ if(antes===idx){
+  delete vs[me.id];refrescarMensajes();
+  ({error}=await sb.from("poll_votes").delete().eq("message_id",mid).eq("user_id",me.id));
+ }else{
+  vs[me.id]=idx;refrescarMensajes();
+  ({error}=await sb.from("poll_votes").upsert({message_id:mid,user_id:me.id,option_idx:idx},{onConflict:"message_id,user_id"}));
+ }
+ if(error){
+  if(antes===undefined)delete vs[me.id];else vs[me.id]=antes;
+  refrescarMensajes();
+  toast("No se pudo votar: "+error.message);
+ }
+}
+let pollChat=null;
+const pollInputs=()=>[...document.querySelectorAll("#plopts input")];
+function pollAnadir(){
+ if(pollInputs().length>=6)return toast("Máximo 6 opciones");
+ const i=document.createElement("input");
+ i.className="fld";i.maxLength=60;i.placeholder="Opción "+(pollInputs().length+1);i.autocomplete="off";
+ $("#plopts").appendChild(i);
+}
+function abrirEncuesta(c){
+ pollChat=c;
+ $("#plq").value="";$("#plopts").innerHTML="";
+ pollAnadir();pollAnadir();
+ $("#pollmodal").classList.add("on");
+ $("#plq").focus();
+}
+$("#pladd").onclick=pollAnadir;
+$("#plcancel").onclick=()=>$("#pollmodal").classList.remove("on");
+$("#plpub").onclick=async()=>{
+ const q=$("#plq").value.trim();
+ const ops=[...new Set(pollInputs().map(i=>i.value.trim()).filter(Boolean))];
+ if(!q)return toast("Escribe la pregunta");
+ if(ops.length<2)return toast("Pon al menos 2 opciones distintas");
+ const c=pollChat;if(!c)return;
+ $("#pollmodal").classList.remove("on");
+ await send(c,{kind:"poll",body:q,poll:{q,options:ops}});
+};
+
+// ---------- Emojis recientes ----------
+function emojisRecientes(){try{const v=JSON.parse(localStorage.getItem("cs_emoji_rec")||"[]");return Array.isArray(v)?v.slice(0,16):[]}catch(e){return []}}
+function guardarEmojiReciente(e){
+ const l=[e,...emojisRecientes().filter(x=>x!==e)].slice(0,16);
+ try{localStorage.setItem("cs_emoji_rec",JSON.stringify(l))}catch(err){}
+}
+
+// Un mensaje cambió (editado o borrado por su autor)
+function onMsgUpdate(r){
+ const c=chats.find(x=>x.id===r.conversation_id);
+ if(!c)return;
+ const i=c.m.findIndex(x=>x.id===r.id);
+ if(i<0)return;
+ const nm=toMsg(r);
+ nm.q=quoteFor(c,nm);
+ c.m[i]=nm;
+ if(i===c.m.length-1)c.last=(nm.k==="out"?"Tú: ":"")+prev(nm);
+ if(curId===c.id)refrescarMensajes();
+ drawList();
+}
+
 // ---------- Envío ----------
-async function send(c,fields){
+async function send(c,fields,opts={}){
+ if(c&&c.isGroup&&cooldownGrupo[c.id]&&!opts.sinRespuesta){
+  const sec=+cooldownGrupo[c.id]||0;
+  if(sec>0){
+   const last=lastSentAt[c.id]||0;
+   const left=Math.ceil((last+sec*1000-Date.now())/1000);
+   if(left>0)return toast("Espera "+left+" s entre mensajes (cooldown del grupo)");
+  }
+ }
  if(c.other&&bloqueados.has(c.other.id))return toast("Tienes bloqueada a esta persona");
  const row={conversation_id:c.id,sender_id:me.id,...fields};
- if(replyTo){row.reply_to=replyTo.id;replyTo=null;const rb=$("#rb");if(rb)rb.hidden=true}
- if(!navigator.onLine){encolarEnvio(c,fields);return}
+ if(replyTo&&!opts.sinRespuesta&&!row.reply_to){row.reply_to=replyTo.id;replyTo=null;const rb=$("#rb");if(rb)rb.hidden=true}
+ const guardable={...fields};
+ if(row.reply_to)guardable.reply_to=row.reply_to;
+ if(!navigator.onLine){encolarEnvio(c,guardable);return}
  const {data,error}=await sb.from("messages").insert(row).select().single();
  if(error){
-  if(/fetch|network|Failed/i.test(error.message)){encolarEnvio(c,fields);return}
+  if(/failed to fetch|networkerror|network request|load failed/i.test(error.message)){encolarEnvio(c,guardable);return}
   toast("No se pudo enviar: "+error.message);
-  if(fields.body)$("#inp").value=fields.body;
+  const inp=$("#inp");
+  if(inp&&fields.body&&curId===c.id&&!inp.value)inp.value=fields.body;
   return;
  }
- onNewMsg(data);
+ if(c&&c.isGroup)lastSentAt[c.id]=Date.now();
+onNewMsg(data);
 }
 
 
@@ -840,14 +1199,50 @@ async function cambiarApodoChat(c){
 }
 
 // ---------- Vista de chat ----------
+function textoSubtitulo(c){
+ if(c.isGroup){
+  const r=String(c.myRole||"member").toLowerCase();
+  let t="Miembro";
+  if(r==="admin"||r.includes("admin"))t="Admin";
+  else if(r==="owner")t="Owner";
+  else if(r.includes("mod"))t="Moderador";
+  else if(r.includes("vip"))t="VIP";
+  else if(c.myRole&&c.myRole!=="member")t=c.myRole;
+  return "Grupo · Tu rol: "+t;
+ }
+ if(enLineaChat(c))return "en línea";
+ return textoConexion(c.other?.last_seen)||c.other?.status||"";
+}
+setInterval(()=>{
+ const c=typeof curChat==="function"?curChat():null;
+ const sm=document.querySelector(".ch .who small");
+ if(c&&sm)sm.textContent=textoSubtitulo(c);
+},15000);
+// Pulsación larga en móvil (iOS no lanza "contextmenu")
+let ultimoLP=0,tocando=false,tocandoT=null;
+document.addEventListener("touchstart",()=>{tocando=true;clearTimeout(tocandoT)},{passive:true,capture:true});
+["touchend","touchcancel"].forEach(ev=>document.addEventListener(ev,()=>{clearTimeout(tocandoT);tocandoT=setTimeout(()=>{tocando=false},1000)},{passive:true,capture:true}));
+function onLongPress(root,selector,fn){
+ let t=null,x0=0,y0=0;
+ const cancelar=()=>{clearTimeout(t);t=null};
+ root.addEventListener("touchstart",e=>{
+  const el=e.target.closest(selector);if(!el)return;
+  const p=e.touches[0];x0=p.clientX;y0=p.clientY;
+  cancelar();
+  t=setTimeout(()=>{t=null;ultimoLP=Date.now();try{fn(el)}finally{ultimoLP=Date.now()}},550);
+ },{passive:true});
+ root.addEventListener("touchmove",e=>{const p=e.touches[0];if(t&&(Math.abs(p.clientX-x0)>10||Math.abs(p.clientY-y0)>10))cancelar()},{passive:true});
+ root.addEventListener("touchend",cancelar);
+ root.addEventListener("touchcancel",cancelar);
+}
 function renderChat(c){
- const sub=c.isGroup?"Grupo":(c.other?.status||"");
- main.innerHTML=`<div class="ch"><button class="ic back" id="bk" aria-label="Volver"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>${avHtml(c,"40px",c.isGroup?"r":"")}<div class="who"><b>${esc(c.n)}</b><small>${esc(sub)}</small></div><button class="ic" id="bvid" aria-label="Videollamada"><svg viewBox="0 0 24 24"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5"/><path d="M15.5 10.5l6-3.5v10l-6-3.5"/></svg></button><button class="ic" id="bcall" aria-label="Llamar"><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/></svg></button></div>
+ const sub=textoSubtitulo(c);
+ main.innerHTML=`<div class="ch"><button class="ic back" id="bk" aria-label="Volver"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>${avHtml(c,"40px",c.isGroup?"r":"")}<div class="who"><b>${esc(c.n)}</b><small>${esc(sub)}</small></div><button class="ic" id="bsearch" aria-label="Buscar"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button><button class="ic" id="bvid" aria-label="Videollamada"><svg viewBox="0 0 24 24"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5"/><path d="M15.5 10.5l6-3.5v10l-6-3.5"/></svg></button><button class="ic" id="bcall" aria-label="Llamar"><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/></svg></button></div>
+ <div class="chsearch" id="chsearch"><input id="chinp" placeholder="Buscar en este chat" autocomplete="off"><button class="ic" id="chsearchx" type="button">×</button></div>
  <div class="msgs" id="ms"></div>
- <div class="stk" id="stk" hidden>${STK}</div>
-  <div class="plantp" id="plantp" hidden></div>
- <div class="rbar" id="rb" hidden><div><b id="rw"></b><span id="rt"></span></div><button class="ic" id="rx" aria-label="Cancelar respuesta">×</button></div>
- <form class="bar" id="f"><button type="button" class="ic" id="emo" aria-label="Stickers"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14c1 2 7 2 8 0M9 9.5h.01M15 9.5h.01"/></svg></button><button type="button" class="ic" id="emj" aria-label="Emojis"><svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="10" fill="#c8102e"/><circle cx="12" cy="12" r="8" fill="#111"/><circle cx="9" cy="10" r="1.3" fill="#fff"/><circle cx="15" cy="10" r="1.3" fill="#fff"/><path d="M8.5 14.5q3.5 3 7 0" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg></button><button type="button" class="ic" id="dictar" aria-label="Dictar mensaje"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 12h2M8 8v8M12 5v14M16 9v6M20 11v2" stroke="#c8102e" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg></button><button type="button" class="ic" id="plant" aria-label="Respuestas rápidas"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M13 2L4 14h7l-1 8 9-12h-7z" fill="#c8102e" stroke="#fff" stroke-width="1"/></svg></button><button type="button" class="ic" id="foto" aria-label="Enviar foto"><svg viewBox="0 0 24 24" width="22" height="22"><rect x="3" y="7" width="18" height="13" rx="3" fill="#111" stroke="#c8102e" stroke-width="2"/><circle cx="12" cy="13.5" r="3.5" fill="#c8102e"/></svg></button><input type="file" id="fotoin" accept="image/*" hidden><button type="button" class="rec" id="mic" aria-label="Mensaje de voz"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></button><input id="inp" placeholder="Escribe un mensaje" autocomplete="off" aria-label="Mensaje"><button class="send" aria-label="Enviar"><svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-3-7-7-1z"/></svg></button></form>`;
+  <div class="emjp" id="emjp" hidden></div>
+  <div class="rbar" id="rb" hidden><div><b id="rw"></b><span id="rt"></span></div><button class="ic" id="rx" aria-label="Cancelar respuesta">×</button></div>
+ <form class="bar" id="f"><button type="button" class="ic" id="emj" aria-label="Emojis y stickers"><svg class="stk" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="stkg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff4d63"/><stop offset="1" stop-color="#b0061f"/></linearGradient></defs><path d="M24 3C12 3 3 12 3 24s9 21 21 21c3 0 6-.6 8.6-1.7L45 31.6c.6-2.4 1-5 1-7.6C46 12 36 3 24 3z" fill="#fff"/><path d="M24 6.5C13.9 6.5 6.5 14 6.5 24S13.9 41.5 24 41.5c2.6 0 5-.5 7.2-1.4 1.2-3.6 4.6-6.2 8.7-6.3.9-2.2 1.6-4.6 1.6-7.8C41.5 14 34.1 6.5 24 6.5z" fill="url(#stkg)"/><path d="M32.2 40.1c.4-3.9 3.4-6.9 8.3-7.5-1 3.8-4.2 6.5-8.3 7.5z" fill="#e9e9ee" stroke="#c8c8d0" stroke-width=".8"/><ellipse cx="17" cy="20" rx="3" ry="4" fill="#fff"/><ellipse cx="29.5" cy="20" rx="3" ry="4" fill="#fff"/><circle cx="17.8" cy="20.8" r="1.7" fill="#111"/><circle cx="30.3" cy="20.8" r="1.7" fill="#111"/><path d="M15 29c2.2 4.6 14 5.4 17.6.6" stroke="#fff" stroke-width="2.6" stroke-linecap="round" fill="none"/><path d="M11 12.5c3-3 7-4.4 11-4.4" stroke="#ffffff66" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg></button><input id="inp" placeholder="Escribe un mensaje" autocomplete="off" aria-label="Mensaje"><button type="button" class="rec" id="mic" aria-label="Mensaje de voz"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></button><button class="send" aria-label="Enviar"><svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-3-7-7-1z"/></svg></button></form>`;
  marcarEstados(c);
  const ms=$("#ms");
  aplicarFondoChat(c);
@@ -856,61 +1251,67 @@ function renderChat(c){
  $("#bk").onclick=()=>{if(history.state&&history.state.chat)history.back();else leaveChat()};
  $("#bcall").onclick=()=>startCall(c,false);
  $("#bvid").onclick=()=>startCall(c,true);
- $("#emo").onclick=()=>{$("#stk").hidden=!$("#stk").hidden};
- $("#emj").onclick=()=>{$("#plantp").hidden=true;$("#stk").hidden=!$("#stk").hidden};
- $("#plant").onclick=()=>{
-  const pl=$("#plantp");
-  $("#stk").hidden=true;
-  pl.hidden=!pl.hidden;
-  if(!pl.hidden)pl.innerHTML=`<button type="button" data-ubi="1">Compartir mi ubicación</button>`+plantillas().map(t=>`<button type="button">${esc(t)}</button>`).join("")+contacts.map(p=>`<button type="button" data-cid="${p.id}">Compartir contacto: ${esc(contactAlias[p.id]||p.display_name||"Usuario")}</button>`).join("");
+ $("#bsearch")&&($("#bsearch").onclick=()=>{$("#chsearch").classList.add("on");$("#chinp").focus()});
+ $("#chsearchx")&&($("#chsearchx").onclick=()=>{$("#chsearch").classList.remove("on");$("#chinp").value="";refrescarMensajes()});
+ $("#chinp")&&($("#chinp").oninput=()=>buscarEnChat(c,$("#chinp").value.trim()));
+ let lastTap=0,lastTapId=null;
+ ms.addEventListener("click",e=>{
+  const r=e.target.closest("[data-reac]");if(r){e.stopPropagation();const [mid,em]=r.dataset.reac.split(":");toggleReaccion(mid,em);return}
+  const vn=e.target.closest("[data-vn]");if(vn){playNotaVideo(vn);return}
+  const sl=e.target.closest("[data-stoplive]");if(sl){detenerUbicacionViva(sl.dataset.stoplive);return}
+  const b=e.target.closest(".m[data-id]");if(!b||e.target.closest("a,.play,.po"))return;
+  const now=Date.now();
+  if(lastTapId===b.dataset.id&&now-lastTap<320){toggleReaccion(b.dataset.id,"❤️");lastTap=0;lastTapId=null}
+  else{lastTap=now;lastTapId=b.dataset.id}
+ });
+ const cerrarPaneles=excepto=>["emjp"].forEach(id=>{if(id!==excepto)$("#"+id).hidden=true});
+ let emoCat=1;
+ const EMO_CATS=[["😀", ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "🥲", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🤩", "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "😣", "😖", "😫", "😩", "🥺", "😢", "😭", "😤", "😠", "😡", "🤬", "🤯", "😳", "🥵", "🥶", "😱", "😨", "😰", "😥", "😓", "🤗", "🤔", "🤭", "🤫", "🤥", "😶", "😐", "😑", "😬", "🙄", "😯", "😦", "😧", "😮", "😲", "🥱", "😴", "🤤", "😪", "😵", "🤐", "🥴", "🤢", "🤮", "🤧", "😷", "🤒", "🤕", "🤑", "🤠", "😈", "👿", "👻", "💀", "🤡", "👽", "🤖", "💩"]], ["👍", ["👍", "👎", "👌", "🤏", "✌️", "🤞", "🤟", "🤘", "🤙", "👈", "👉", "👆", "👇", "☝️", "👋", "🤚", "✋", "🖖", "👏", "🙌", "👐", "🤲", "🤝", "🙏", "✍️", "💅", "🤳", "💪", "🦵", "🦶", "👂", "👃", "🧠", "👀", "👅", "👄"]], ["❤️", ["❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔", "💕", "💞", "💓", "💗", "💖", "💘", "💝", "💟", "😍", "🥰", "😘", "💌", "💋", "💯", "💢", "💥", "💫", "💦", "💨", "✨", "🌟", "⭐", "🔥", "🎉", "🎊"]], ["🐶", ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🙈", "🙉", "🙊", "🐔", "🐧", "🐦", "🐤", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄", "🐝", "🐛", "🦋", "🐌", "🐞", "🐜", "🐢", "🐍", "🐙", "🦑", "🦀", "🐠", "🐟", "🐬", "🐳", "🦈", "🐘", "🦒", "🦓", "🐕", "🐈", "🐇", "🌸", "🌹", "🌻", "🌲", "🌴", "🍀", "🌈", "☀️", "🌙", "☁️", "❄️"]], ["🍕", ["🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🍒", "🍑", "🥭", "🍍", "🥥", "🥑", "🍅", "🌽", "🥕", "🥔", "🍞", "🧀", "🥚", "🥓", "🍔", "🍟", "🌭", "🍕", "🌮", "🌯", "🥗", "🍝", "🍜", "🍣", "🍤", "🍙", "🍚", "🍦", "🍩", "🍪", "🎂", "🍰", "🧁", "🍫", "🍬", "🍿", "☕", "🍵", "🥤", "🍺", "🍷", "🥂", "🍹"]], ["⚽", ["⚽", "🏀", "🏈", "⚾", "🎾", "🏐", "🏉", "🎱", "🏓", "🥊", "🎮", "🎯", "🎲", "🎸", "🎹", "🥁", "🎤", "🎧", "🎬", "🎨", "🏆", "🥇", "🏅", "🎁", "🎈", "🎊"]], ["🚗", ["🚗", "🚕", "🚌", "🚓", "🚑", "🚲", "🛵", "✈️", "🚀", "🚁", "⛵", "🏠", "🏫", "🏥", "🏖️", "🌍", "📱", "💻", "📷", "🔋", "💡", "💰", "💳", "🔑", "🔒", "📞", "📌", "📎", "✏️", "📚", "⏰", "⌛", "🎒"]], ["✅", ["✅", "❌", "⚠️", "❓", "❗", "💤", "🔴", "🟠", "🟡", "🟢", "🔵", "🟣", "⚫", "⚪", "✔️", "➕", "➖", "➗", "♻️", "🔔", "🚫", "🆗", "🆒", "🆕", "🆓", "🔝", "➡️", "⬅️", "⬆️", "⬇️", "🔁"]]];
+ const pintarEmojis=()=>{
+  const rec=emojisRecientes();
+  const cats=[["🕘",rec],...EMO_CATS];
+  if(emoCat>=cats.length)emoCat=1;
+  if(emoCat===0&&!rec.length)emoCat=1;
+  $("#emjp").innerHTML=`<div class="emj-tabs">${cats.map((x,i)=>`<button type="button" data-cat="${i}" class="${i===emoCat?"on":""}">${x[0]}</button>`).join("")}</div>`+cats[emoCat][1].map(e=>`<button type="button">${e}</button>`).join("");
  };
- $("#plantp").onclick=e=>{
-  const b=e.target.closest("button");
-  if(!b)return;
-  $("#plantp").hidden=true;
-  if(b.dataset.ubi){
-   if(!navigator.geolocation)return toast("Este navegador no permite compartir ubicación");
-   navigator.geolocation.getCurrentPosition(
-    pos=>send(c,{kind:"text",body:"Mi ubicación: https://maps.google.com/?q="+pos.coords.latitude+","+pos.coords.longitude}),
-    err=>toast("No se pudo obtener la ubicación: "+err.message),
-    {enableHighAccuracy:true,timeout:10000});
-   return;
-  }
-  if(b.dataset.cid){
-   const p=contacts.find(x=>x.id===b.dataset.cid);
-   if(p)send(c,{kind:"text",body:"Contacto: "+(contactAlias[p.id]||p.display_name||"Usuario")+(p.phone?" · "+p.phone:"")});
-   return;
-  }
-  send(c,{kind:"text",body:b.textContent});
+ $("#emjp").onclick=e=>{
+  const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.cat!==undefined){emoCat=+b.dataset.cat;pintarEmojis();return}
+  const i=$("#inp");
+  const a=i.selectionStart??i.value.length,z=i.selectionEnd??a;
+  i.value=i.value.slice(0,a)+b.textContent+i.value.slice(z);
+  const p=a+b.textContent.length;
+  guardarEmojiReciente(b.textContent);
+  i.focus();
+  try{i.setSelectionRange(p,p)}catch(err){}
  };
+ $("#emj").onclick=()=>{cerrarPaneles("emjp");const p=$("#emjp");if(p.hidden)pintarEmojis();p.hidden=!p.hidden};
  $("#mic").onpointerdown=e=>{e.preventDefault();vozPendienteParar=false;if(!recorder)toggleVoz(c)};
  $("#mic").onpointerup=()=>pararVoz();
  $("#mic").onpointerleave=()=>pararVoz();
  $("#mic").onpointercancel=()=>pararVoz();
- $("#foto").onclick=()=>$("#fotoin").click();
- $("#fotoin").onchange=e=>{const f=e.target.files[0];e.target.value="";enviarFoto(c,f)};
- $(".ch .who").onclick=()=>verPerfil(c);
- $("#ms").oncontextmenu=e=>{const b=e.target.closest(".m[data-id]");if(!b)return;e.preventDefault();const m=c.m.find(z=>z.id===b.dataset.id);if(m)accionesMensaje(c,m)};
+ $(".ch .who").onclick=()=>{if(c.isGroup)abrirInfoGrupo(c);else verPerfil(c)};
+ $("#ms").oncontextmenu=e=>{const b=e.target.closest(".m[data-id]");if(!b)return;e.preventDefault();if(tocando)return;const m=c.m.find(z=>z.id===b.dataset.id);if(m)accionesMensaje(c,m)};
+ onLongPress($("#ms"),".m[data-id]",b=>{const m=c.m.find(z=>z.id===b.dataset.id);if(m)accionesMensaje(c,m)});
   pintarAncla(c);
  const cab=document.querySelector(".ch");
  if(cab&&!cab.querySelector("#chmenu")){
   cab.insertAdjacentHTML("beforeend",'<button class="ic" id="chmenu" type="button" aria-label="Opciones del chat"><svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="5" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="19" r="2" fill="currentColor"/></svg></button>');
  }
  $("#chmenu").onclick=()=>abrirMenuChat(c);
- $("#inp").addEventListener("contextmenu",e=>{e.preventDefault();programarMensaje(c)});
+ $("#inp").addEventListener("contextmenu",e=>{e.preventDefault();if(tocando)return;programarMensaje(c)});
  abrirEscritura(c);
- $("#stk").onclick=e=>{
-  const b=e.target.closest("[data-sid]");if(!b)return;
-  $("#stk").hidden=true;
-  send(c,{kind:"sticker",sticker_id:b.dataset.sid});
- };
  $("#rx").onclick=()=>{replyTo=null;$("#rb").hidden=true};
  ms.onclick=e=>{
+  if(Date.now()-ultimoLP<700)return;
+  if(e.target.closest("a"))return;
+  const vt=e.target.closest("[data-voto]");
+  if(vt){const [mid,ix]=vt.dataset.voto.split(":");votar(mid,+ix);return}
   const pb=e.target.closest(".play");if(pb){playVoz(pb.dataset.path);return}
   const ver=e.target.closest("[data-ver]");if(ver){vistos.add(ver.dataset.ver);refrescarMensajes();return}
   const b=e.target.closest(".m[data-id]");if(!b)return;
   const m=c.m.find(z=>z.id===b.dataset.id);
-  if(!m||m.type==="deleted")return;
+  if(!m||m.type==="deleted"||m.type==="call")return;
   replyTo={id:m.id,who:m.k==="out"?"Tú":c.n,x:prev(m)};
   $("#rw").textContent="Respondiendo a "+replyTo.who;$("#rt").textContent=replyTo.x;
   $("#rb").hidden=false;$("#inp").focus();
@@ -919,6 +1320,7 @@ function renderChat(c){
   e.preventDefault();
   const v=$("#inp").value.trim();if(!v)return;
   $("#inp").value="";
+  (v.match(/\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*/gu)||[]).reverse().forEach(guardarEmojiReciente);
   send(c,{kind:"text",body:v.slice(0,5000)});
  };
 }
@@ -940,19 +1342,23 @@ reaplicarApodos();
 }
 function drawList(){
  const q=$("#q").value.trim().toLowerCase();
- chats.sort((a,b)=>(b.lastAt||"")>(a.lastAt||"")?1:-1);
+ const enTodos=carpetaActual==="Todos"&&filter==="Todos";
+ const conChat=new Set(chats.filter(c=>c.other&&!ocultos.includes(c.id)&&!archivados.includes(c.id)).map(c=>c.other.id));
+ chats.forEach(c=>{if(noLeidosForzados[c.id])c.u=Math.max(c.u||0,noLeidosForzados[c.id])});
+ chats.sort((a,b)=>{const pa=chatsAnclados.includes(a.id)?1:0,pb=chatsAnclados.includes(b.id)?1:0;if(pa!==pb)return pb-pa;return String(b.lastAt||"").localeCompare(String(a.lastAt||""))});
  const rows=chats
   .filter(c=>(carpetaActual==="Archivados"?archivados.includes(c.id):!archivados.includes(c.id)&&(carpetaActual==="Todos"||carpetas[c.id]===carpetaActual))&&!ocultos.includes(c.id)&&!(c.other&&bloqueados.has(c.other.id))&&c.n.toLowerCase().includes(q)&&(filter==="Todos"||(filter==="No leídos"&&c.u>0)||(filter==="Grupos"&&c.isGroup)))
-  .map(c=>`<button class="row ${curId===c.id?"on":""}" data-id="${c.id}">${avHtml(c,"44px",c.isGroup?"r":"")}<div class="mid"><div class="l1"><span class="nm">${esc(c.n)}${enLineaChat(c)?'<span class="dot-on"></span>':""}${silenciados.includes(c.id)?"<svg viewBox='0 0 24 24' width='13' height='13' style='vertical-align:-2px'><path d='M3 3l18 18M6 9a6 6 0 0 1 10-4' stroke='#c8102e' stroke-width='2.4' fill='none'/></svg>":""}</span><span class="tm ${c.u?"u":""}">${c.t}</span></div><div class="l2"><span class="pv">${esc(c.last)}</span>${c.u?`<span class="bd">${c.u}</span>`:""}</div></div></button>`)
+  .map(c=>`<button class="row ${curId===c.id?"on":""}" data-id="${c.id}">${avHtml(c,"44px",c.isGroup?"r":"")}<div class="mid"><div class="l1"><span class="nm">${chatsAnclados.includes(c.id)?'<span class="pin-badge">📌</span>':""}${esc(c.n)}${enLineaChat(c)?'<span class="dot-on"></span>':""}${silenciados.includes(c.id)?"<svg viewBox='0 0 24 24' width='13' height='13' style='vertical-align:-2px'><path d='M3 3l18 18M6 9a6 6 0 0 1 10-4' stroke='#c8102e' stroke-width='2.4' fill='none'/></svg>":""}</span><span class="tm ${c.u?"u":""}">${c.t}</span></div><div class="l2"><span class="pv">${esc(c.last)}</span>${c.u?`<span class="bd">${c.u}</span>`:""}</div></div></button>`)
   .join("");
- const ppl=q?people.filter(p=>!chats.some(c=>c.other?.id===p.id)).map(p=>
+ const ppl=q&&enTodos?people.filter(p=>!conChat.has(p.id)&&!contacts.some(x=>x.id===p.id)&&!bloqueados.has(p.id)).map(p=>
   `<button class="row" data-p="${p.id}">${avHtml({other:p,c:initial(p.display_name)},"44px")}<div class="mid"><div class="l1"><span class="nm">${esc(p.display_name)}</span></div><div class="l2"><span class="pv">${esc(p.status||"")}</span></div></div></button>`).join(""):"";
  const head=ppl?`<div style="padding:10px 14px 4px;color:var(--mute);font-size:12.5px">Personas</div>`:"";
- const ctsFilt=contacts.filter(p=>!bloqueados.has(p.id)&&(!q||(contactAlias[p.id]||p.display_name||"").toLowerCase().includes(q)));
+ const ctsFilt=!enTodos?[]:contacts.filter(p=>!bloqueados.has(p.id)&&!conChat.has(p.id)&&(!q||(contactAlias[p.id]||p.display_name||"").toLowerCase().includes(q)));
  const cts=ctsFilt.map(p=>`<button class="row" data-p="${p.id}">${avHtml({other:p,c:initial(p.display_name)},"44px")}<div class="mid"><div class="l1"><span class="nm">${esc(contactAlias[p.id]||p.display_name||"Usuario")}</span></div><div class="l2"><span class="pv">${esc(p.status||"")}</span></div></div></button>`).join("");
  const headC=cts?`<div style="padding:10px 14px 4px;color:var(--mute);font-size:12.5px">Contactos</div>`:"";
- const pHtml=perdidas.length&&!q?`<div style="padding:10px 14px 4px;color:var(--mute);font-size:12.5px">Llamadas perdidas</div>`+perdidas.slice().reverse().map(x=>`<button class="row" data-devolver="${esc(x.convId)}"><div class="mid"><div class="l1"><span class="nm">${esc(x.name)}</span></div><div class="l2"><span class="pv">${x.kind==="video"?"Videollamada":"Llamada de voz"} · ${new Date(x.at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span></div></div><span class="pv" style="color:#c8102e">Devolver</span></button>`).join(""):"";
- list.innerHTML=(solHtml()+barraCarpetas()+pHtml+rows+headC+cts+head+ppl)||'<div class="empty">Aún no tienes chats. Busca a alguien por nombre para empezar.</div>';
+ const pHtml=perdidas.length&&!q&&enTodos?`<div style="padding:10px 14px 4px;color:var(--mute);font-size:12.5px">Llamadas perdidas</div>`+perdidas.slice().reverse().map(x=>`<button class="row" data-devolver="${esc(x.convId)}"><div class="mid"><div class="l1"><span class="nm">${esc(x.name)}</span></div><div class="l2"><span class="pv">${x.kind==="video"?"Videollamada":"Llamada de voz"} · ${new Date(x.at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span></div></div><span class="pv" style="color:#c8102e">Devolver</span></button>`).join(""):"";
+ const cuerpo=solHtml()+pHtml+rows+headC+cts+head+ppl;
+ list.innerHTML=barraCarpetas()+(cuerpo||'<div class="empty">Aún no tienes chats. Busca a alguien por nombre para empezar.</div>');
 }
 
 async function startChatWith(uid){
@@ -964,6 +1370,7 @@ async function startChatWith(uid){
 }
 
 list.onclick=e=>{
+ if(Date.now()-ultimoLP<700)return;
  const r=e.target.closest(".row");if(!r)return;
  if(r.dataset.id)openChat(r.dataset.id);
  else if(r.dataset.p)startChatWith(r.dataset.p);
@@ -984,7 +1391,6 @@ document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
  document.querySelectorAll(".chip").forEach(z=>z.classList.remove("on"));
  c.classList.add("on");filter=c.textContent;drawList();
 });
-$("#btnE").onclick=()=>toast("Los estados aún no están disponibles");
 $("#btnN").onclick=()=>$("#q").focus();
 
 // ---------- Perfil ----------
@@ -999,7 +1405,7 @@ function updateMe(){
 function applyPhoto(){
  ["#btnMe","#pav"].forEach(sel=>{
   const el=$(sel);
-  el.style.background=me.photo?`center/cover no-repeat url("${esc(me.photo)}")`:"";
+  el.style.background=me.photo?`center/cover no-repeat url("${String(me.photo).replace(/["\\\n\r]/g,"")}")`:"";
  });
  $("#pquitar").hidden=!me.photo;
 }
@@ -1062,7 +1468,8 @@ document.querySelectorAll(".sw").forEach(b=>b.onclick=()=>aplicarAcento(b.datase
 // ---------- Acento de color y tema Galaxia (500 s de uso) ----------
 const GAL_META=500;
 let galSeg=(()=>{try{return Math.min(GAL_META,parseFloat(localStorage.getItem("cs_gal_seg")||"0")||0)}catch(e){return 0}})();
-let galOk=true; // PRUEBAS: Galaxia desbloqueado. Para volver al bloqueo normal: galSeg>=GAL_META
+const GAL_PRUEBAS=true; // true = Galaxia siempre desbloqueado (pruebas). Ponlo en false para exigir los 500 s
+let galOk=GAL_PRUEBAS||galSeg>=GAL_META;
 let acento=(()=>{try{return localStorage.getItem("cs_acento")||"rojo"}catch(e){return "rojo"}})();
 let galCv=document.createElement("canvas");galCv.id="galbg";document.body.prepend(galCv);
 let galAnim=null,galBase=null,galTw=[];
@@ -1359,7 +1766,6 @@ $("#atog").onclick=()=>{
 };
 $("#af").onsubmit=async e=>{
  e.preventDefault();
- toast("Procesando…");
  const usuario=$("#ausuario").value.trim().toLowerCase(),password=$("#apass").value,btn=$("#abtn");
  if(!/^[a-z0-9_.]{3,20}$/.test(usuario))return setErr("El usuario debe tener entre 3 y 20 letras, números, punto o guion bajo.");
  const telefono=normalizarTelefono($("#aphone").value);
@@ -1387,7 +1793,6 @@ $("#af").onsubmit=async e=>{
   console.error("Auth error:",err);
   const msg=explain(err);
   setErr(msg);
-  alert(msg+"\n\n(Detalle: "+(err?.message||"sin detalle")+")");
  }finally{
   btn.disabled=false;btn.textContent=reg?"Crear cuenta":"Iniciar sesión";
  }
@@ -1429,14 +1834,18 @@ $("#fabContacto").onclick=()=>{
 };
 async function addContact(p){
  const btn=$("#cadd");
- if(btn)btn.disabled=true;
- const {error}=await sb.from("solicitudes_contacto").insert({de:me.id,para:p.id});
+ btn.disabled=true;
+ const {error}=await sb.rpc("add_contact",{other_user:p.id});
  if(error){
-  if(btn)btn.disabled=false;
-  $("#cres").textContent=error.code==="23505"?"Ya enviaste una solicitud a esta persona.":"No se pudo enviar: "+error.message;
+  btn.disabled=false;
+  $("#cres").textContent=error.code==="23505"?"Ya está en tus contactos.":"No se pudo añadir: "+error.message;
   return;
  }
- $("#cres").textContent="Solicitud enviada a "+(p.display_name||"esta persona")+".";
+ const {error:errChat}=await sb.rpc("start_direct_conversation",{other_user:p.id});
+ if(errChat)console.warn("No se creó el chat:",errChat.message);
+ $("#cres").textContent=(p.display_name||"Usuario")+" añadido a tus contactos.";
+ loadContacts();
+ loadChats();
 }
 $("#ccerrar").onclick=()=>{pararEscaner();$("#cmodal").classList.remove("on")};
 $("#cnum").addEventListener("focus",e=>{const l=e.target.value.length;e.target.setSelectionRange(l,l)});
@@ -1471,14 +1880,9 @@ function guardarApodos(){try{localStorage.setItem("cs_apodos",JSON.stringify(apo
 let tono=(()=>{try{return localStorage.getItem("cs_tono")||"clasico"}catch(e){return "clasico"}})();
 let actx=null,ringTimer=null;
 function audioCtx(){
- try{
-  if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();
-  if(actx.state==="suspended")actx.resume().catch(()=>{});
-  return actx;
- }catch(e){
-  console.warn("Audio no disponible:",e);
-  return null;
- }
+ if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();
+ if(actx.state==="suspended")actx.resume();
+ return actx;
 }
 function beep(f,t0,dur,vol=.25,type="sine"){
  const c=audioCtx();if(!c)return;
@@ -1539,6 +1943,7 @@ function actualizarBotonNotif(){
  b.disabled=false;
 }
 $("#snot").onclick=async()=>{
+ if(!("Notification" in window))return;
  if(Notification.permission==="default")await Notification.requestPermission();
  actualizarBotonNotif();
  if(Notification.permission!=="granted")return toast("Permite las notificaciones para continuar");
@@ -1551,8 +1956,11 @@ list.addEventListener("contextmenu",e=>{
  const row=e.target.closest("[data-p]");
  if(!row)return;
  e.preventDefault();
+ if(tocando)return;
  renombrarContacto(row.dataset.p);
 });
+onLongPress(list,"[data-p]",row=>renombrarContacto(row.dataset.p));
+onLongPress(list,"[data-id]",row=>accionesChat(row.dataset.id));
 async function renombrarContacto(id){
  const p=contacts.find(x=>x.id===id);
  if(!p)return;
@@ -1671,8 +2079,8 @@ async function verPerfil(c){
  $("#vmodal").classList.add("on");
 }
 async function addContactDirecto(p){
- const {error}=await sb.from("solicitudes_contacto").insert({de:me.id,para:p.id});
- if(error)return toast(error.code==="23505"?"Ya enviaste una solicitud a esta persona":error.message);
+ const {error}=await sb.rpc("add_contact",{other_user:p.id});
+ if(error)return toast(error.message);
  $("#vmodal").classList.remove("on");
  toast("Añadido a tus contactos");
  await loadContacts();
@@ -1744,6 +2152,7 @@ function cerrarEscritura(){
  clearTimeout(typingT);
 }
 function mostrarEscribiendo(on){
+ if(!$("#ms"))return;
  let el=$("#escribiendo");
  if(on){
   if(!el){
@@ -1759,29 +2168,47 @@ function mostrarEscribiendo(on){
 async function accionesMensaje(c,m){
  if(m.type==="call")return;
  const esMio=m.k==="out";
- const ops=esMio?"anclar, editar o borrar":"anclar, traducir o denunciar";
- const op=(prompt(`Escribe: ${ops}. Déjalo vacío para cancelar.`)||"").trim().toLowerCase();
- if(op==="anclar"){anclar(c,m);return}
- if(!esMio){
-  if(op==="traducir")return traducir(m);
-  if(op==="denunciar")denunciar(c.other?.id||null,m.id);
-  return;
- }
- if(m.type==="deleted")return;
- if(op==="borrar"){
-  if(!confirm("¿Eliminar este mensaje?"))return;
-  const {error}=await sb.from("messages").update({kind:"deleted"}).eq("id",m.id);
-  if(error)return toast(error.message);
-  m.type="deleted";refrescarMensajes();
- }else if(op==="editar"){
-  if(m.type!=="text")return toast("Solo se pueden editar mensajes de texto");
-  const nuevo=prompt("Nuevo texto:",m.x||"");
-  if(!nuevo||!nuevo.trim())return;
-  const {error}=await sb.from("messages").update({body:nuevo.trim().slice(0,5000)}).eq("id",m.id);
-  if(error)return toast(error.message);
-  m.x=nuevo.trim();refrescarMensajes();
- }
+ const body=$("#actsheet-body");
+ const preview=m.type==="text"?(m.x||"").slice(0,80):prev(m);
+ body.innerHTML=`<b>${esc(preview||"Mensaje")}</b><div class="reacrow">${REAC_EMOJIS.map(e=>`<button type="button" data-act="reac" data-em="${e}">${e}</button>`).join("")}</div>
+  <button type="button" data-act="responder">↩️ Responder</button>
+  <button type="button" data-act="copiar">📋 Copiar</button>
+  <button type="button" data-act="reenviar">➡️ Reenviar</button>
+  <button type="button" data-act="destacar">${mensajesDestacados.has(m.id)?"☆ Quitar destacado":"⭐ Destacar"}</button>
+  <button type="button" data-act="anclar">${(typeof anclas!=="undefined"&&anclas[c.id]===m.id)?"📌 Desanclar":"📌 Anclar en el chat"}</button>
+  <button type="button" data-act="info">ℹ️ Info</button>
+  ${esMio&&m.type==="text"?`<button type="button" data-act="editar">✏️ Editar</button>`:""}
+  ${esMio&&m.type!=="deleted"?`<button type="button" data-act="borrar">🗑️ Eliminar</button>`:""}
+  ${!esMio?`<button type="button" data-act="traducir">🌐 Traducir</button><button type="button" data-act="denunciar">🚩 Denunciar</button>`:""}
+  <button type="button" data-act="cerrar">Cerrar</button>`;
+ $("#actsheet").classList.add("on");
+ body.onclick=async e=>{
+  const b=e.target.closest("[data-act]");if(!b)return;
+  const act=b.dataset.act;$("#actsheet").classList.remove("on");
+  if(act==="cerrar")return;
+  if(act==="reac"){toggleReaccion(m.id,b.dataset.em);return}
+  if(act==="responder"){replyTo={id:m.id,who:m.k==="out"?"Tú":c.n,x:prev(m)};const rb=$("#rb");if(rb){rb.hidden=false;$("#rw").textContent="Respondiendo a "+replyTo.who;$("#rt").textContent=replyTo.x}$("#inp")?.focus();return}
+  if(act==="copiar"){try{await navigator.clipboard.writeText(m.type==="text"?m.x:prev(m)||"");toast("Copiado")}catch(err){toast("No se pudo copiar")}return}
+  if(act==="reenviar"){abrirReenviar(m);return}
+  if(act==="destacar"){if(mensajesDestacados.has(m.id))mensajesDestacados.delete(m.id);else mensajesDestacados.add(m.id);guardarStars();refrescarMensajes();return}
+  if(act==="anclar"){anclar(c,m);return}
+  if(act==="info"){alert("Hora: "+(m.at?new Date(m.at).toLocaleString():m.h)+"\nEstado: "+(m.k==="out"?(m.s==="r"?"Leído":"Entregado"):"Recibido"));return}
+  if(act==="editar"){const nuevo=prompt("Nuevo texto:",m.x||"");if(!nuevo||!nuevo.trim())return;const {error}=await sb.from("messages").update({body:nuevo.trim().slice(0,5000)}).eq("id",m.id);if(error)return toast(error.message);m.x=nuevo.trim();refrescarMensajes();return}
+  if(act==="borrar"){if(!confirm("¿Eliminar?"))return;const {error}=await sb.from("messages").update({kind:"deleted"}).eq("id",m.id);if(error)return toast(error.message);m.type="deleted";refrescarMensajes();return}
+  if(act==="traducir")return traducir(m);
+  if(act==="denunciar")denunciar(c.other?.id||null,m.id);
+ };
 }
+$("#actsheet")&&$("#actsheet").addEventListener("click",e=>{if(e.target.id==="actsheet")$("#actsheet").classList.remove("on")});
+function toggleReaccion(mid,em){if(!me.id)return;const map=reacciones[mid]||(reacciones[mid]={});const list=map[em]||(map[em]=[]);const i=list.indexOf(me.id);if(i>=0)list.splice(i,1);else list.push(me.id);if(!list.length)delete map[em];if(!Object.keys(map).length)delete reacciones[mid];guardarReacs();refrescarMensajes();try{if(typingCh)typingCh.send({type:"broadcast",event:"reaction",payload:{mid,em,uid:me.id,on:i<0}})}catch(e){}}
+function buscarEnChat(c,q){const ms=$("#ms");if(!ms)return;if(!q){refrescarMensajes();return}const nq=q.toLowerCase();const hits=c.m.filter(m=>m.type!=="deleted"&&((m.x||"").toLowerCase().includes(nq)||prev(m).toLowerCase().includes(nq)));ms.innerHTML=hits.length?hits.map(bub).join(""):'<div class="empty"><p>Sin resultados</p></div>'}
+let fwdMsg=null;
+function abrirReenviar(m){fwdMsg=m;const pintar=()=>{const q=($("#fwdq").value||"").trim().toLowerCase();$("#fwdlista").innerHTML=chats.filter(c=>!ocultos.includes(c.id)&&(!q||c.n.toLowerCase().includes(q))).map(c=>`<button class="btn-a" type="button" data-fwd="${c.id}" style="text-align:left">${esc(c.n)}</button>`).join("")||"<small>No hay chats</small>"};pintar();$("#fwdq").oninput=pintar;$("#fwdmodal").classList.add("on")}
+$("#fwdcerrar")&&($("#fwdcerrar").onclick=()=>{$("#fwdmodal").classList.remove("on");fwdMsg=null});
+$("#fwdlista")&&($("#fwdlista").onclick=async e=>{const b=e.target.closest("[data-fwd]");if(!b||!fwdMsg)return;const c=chats.find(x=>x.id===b.dataset.fwd);if(!c)return;$("#fwdmodal").classList.remove("on");const m=fwdMsg;fwdMsg=null;if(m.type==="image"&&m.path)await send(c,{kind:"image",media_path:m.path},{sinRespuesta:true});else if(m.type==="sticker"&&m.sid)await send(c,{kind:"sticker",sticker_id:m.sid},{sinRespuesta:true});else if(m.type==="voice"&&m.path)await send(c,{kind:"voice",media_path:m.path},{sinRespuesta:true});else if(m.type==="video_note"&&m.path)await send(c,{kind:"video_note",media_path:m.path,body:m.dur||""},{sinRespuesta:true});else await send(c,{kind:"text",body:(m.x||prev(m)||"").slice(0,5000)},{sinRespuesta:true});toast("Reenviado a "+c.n)});
+function abrirMedios(c){const imgs=c.m.filter(m=>m.type==="image"&&m.path);$("#mediolista").innerHTML=imgs.length?imgs.map(m=>`<img src="${esc(urlFoto(m.path))}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px" data-ver="${esc(m.id)}">`).join(""):"<small>Sin fotos</small>";$("#mediomodal").classList.add("on")}
+$("#mediocerrar")&&($("#mediocerrar").onclick=()=>$("#mediomodal").classList.remove("on"));
+
 
 let silenciados=(()=>{try{return JSON.parse(localStorage.getItem("cs_silenc")||"[]")}catch(e){return []}})();
 function toggleSilencio(id){
@@ -1795,6 +2222,7 @@ list.addEventListener("contextmenu",e=>{
  const ch=e.target.closest("[data-id]");
  if(!ch)return;
  e.preventDefault();
+ if(tocando)return;
  accionesChat(ch.dataset.id);
 });
 
@@ -1844,10 +2272,11 @@ async function denunciar(userId,messageId){
 let latidoT=null;
 function latido(){
  clearInterval(latidoT);
- const enviar=()=>{if(me.id&&!document.hidden)sb.from("profiles").update({last_seen:new Date().toISOString()}).eq("id",me.id)};
+ const enviar=()=>{if(me.id&&!document.hidden)sb.from("profiles").update({last_seen:new Date().toISOString()}).eq("id",me.id).then(()=>{},()=>{})};
  enviar();
  latidoT=setInterval(enviar,60000);
 }
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&me.id)latido()});
 function textoConexion(t){
  if(!t)return "";
  const s=(Date.now()-new Date(t).getTime())/1000;
@@ -1878,7 +2307,7 @@ list.addEventListener("click",e=>{
 let ocultos=(()=>{try{return JSON.parse(localStorage.getItem("cs_ocultos")||"[]")}catch(e){return []}})();
 async function accionesChat(id){
  const s=silenciados.includes(id);
- const op=(prompt(`Escribe "${s?"quitar silencio":"silenciar"}", "borrar", "archivar", "renombrar" (solo grupos), o una carpeta: personal, trabajo, familia, ninguna. Déjalo vacío para cancelar.`)||"").trim().toLowerCase();
+ const op=(prompt(`Escribe "${s?"quitar silencio":"silenciar"}", "borrar", "archivar", "desarchivar", "renombrar" (solo grupos), o una carpeta: personal, trabajo, familia, ninguna. Déjalo vacío para cancelar.`)||"").trim().toLowerCase();
  if(op==="borrar"){
   if(!confirm("¿Borrar este chat de tu lista? Solo desaparece en este dispositivo."))return;
   ocultos.push(id);
@@ -2061,7 +2490,7 @@ function pintarAncla(c){
  if(!id)return;
  const m=c.m.find(x=>x.id===id);
  if(!m)return;
- const txt=m.type==="text"?(m.x||""):("["+(m.type||"mensaje")+"]");
+ const txt=m.type==="text"?(m.x||""):m.type==="poll"?("Encuesta: "+(m.poll?.q||m.x||"")):("["+(m.type||"mensaje")+"]");
  $("#ms").insertAdjacentHTML("beforebegin",`<div id="ancla" class="ancla"><span data-ira="${id}">Anclado: ${esc(txt.slice(0,60))}</span><button type="button" class="link" data-desancla="1">Quitar</button></div>`);
 }
 document.addEventListener("click",e=>{
@@ -2106,6 +2535,7 @@ function programarMensaje(c){
  toast((modo==="2"?"Recordatorio":"Mensaje programado")+" para "+new Date(at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}));
 }
 async function procesarProgramados(){
+ if(!me.id)return;
  const ahora=Date.now();
  const pendientes=programados.filter(x=>x.at<=ahora);
  for(const x of pendientes){
@@ -2120,7 +2550,7 @@ async function procesarProgramados(){
   }else{
    const c=chats.find(z=>z.id===x.convId);
    if(!c)continue;
-   await send(c,{kind:"text",body:x.body});
+   await send(c,{kind:"text",body:x.body},{sinRespuesta:true});
   }
   programados=programados.filter(z=>z.id!==x.id);
   guardarProgramados();
@@ -2183,7 +2613,7 @@ document.addEventListener("click",e=>{
  const rap=e.target.closest("[data-rapida]");
  if(rap&&ultimaEntrante){
   const {c}=ultimaEntrante;
-  send(c,{kind:"text",body:rap.dataset.rapida});
+  send(c,{kind:"text",body:rap.dataset.rapida},{sinRespuesta:true});
   $("#irej").click();
   return;
  }
@@ -2273,7 +2703,7 @@ async function vaciarCola(){
  guardarCola();
  for(const x of pendientes){
   const c=chats.find(z=>z.id===x.convId);
-  if(c)await send(c,x.fields);
+  if(c)await send(c,x.fields,{sinRespuesta:true});
   else{colaEnvios.push(x);guardarCola()}
  }
 }
@@ -2322,7 +2752,8 @@ async function cargarPrevias(){
   const els=[...document.querySelectorAll("#ms .m:not([data-prev])")];
   for(const el of els){
    el.dataset.prev="1";
-   const m=el.textContent.match(/https?:\/\/[^\s]+/);
+   const bt=el.querySelector(".bt");
+   const m=bt&&bt.textContent.match(/https?:\/\/[^\s]+/);
    if(!m)continue;
    const url=m[0].replace(/[),.;!?]+$/,"");
    let d=previas.get(url);
@@ -2335,7 +2766,8 @@ async function cargarPrevias(){
     }catch(e){continue}
    }
    if(!d.title&&!d.image)continue;
-   el.insertAdjacentHTML("beforeend",`<a class="lp" href="${esc(d.url)}" target="_blank" rel="noopener">${d.image?`<img src="${esc(d.image)}" alt="">`:""}<div class="lpt">${esc(d.title||d.url)}</div><div class="lpd">${esc(d.site||"")}</div></a>`);
+   const href=/^https?:\/\//i.test(d.url||"")?d.url:url;
+   el.insertAdjacentHTML("beforeend",`<a class="lp" href="${esc(href)}" target="_blank" rel="noopener">${d.image?`<img src="${esc(d.image)}" alt="">`:""}<div class="lpt">${esc(d.title||href)}</div><div class="lpd">${esc(d.site||"")}</div></a>`);
   }
  }finally{
   previasEnCurso=false;
@@ -2346,16 +2778,6 @@ new MutationObserver(()=>{clearTimeout(tPrevias);tPrevias=setTimeout(cargarPrevi
  .observe(document.body,{childList:true,subtree:true});
 
 // ---------- Grupos ----------
-$("#fabGrupo").onclick=()=>{
- fab.classList.remove("open");
- $("#fabMain").setAttribute("aria-expanded","false");
- $("#gnombre").value="";
- $("#glista").innerHTML=contacts.length
-  ?contacts.map(p=>`<label class="ajlbl"><input type="checkbox" value="${p.id}"> ${esc(contactAlias[p.id]||p.display_name||"Usuario")}</label>`).join("")
-  :"<small>Primero añade contactos para crear un grupo.</small>";
- $("#gmodal").classList.add("on");
- $("#gnombre").focus();
-};
 $("#gcerrar").onclick=()=>$("#gmodal").classList.remove("on");
 
 // ---------- Grupos: foto, descripción y código ----------
@@ -2371,7 +2793,7 @@ $("#fabGrupo").onclick=()=>{
  $("#gcod").value="";
  $("#glista").innerHTML=contacts.length
   ?contacts.map(p=>`<label class="ajlbl"><input type="checkbox" value="${p.id}"> ${esc(contactAlias[p.id]||p.display_name||"Usuario")}</label>`).join("")
-  :"<small>Primero añade contactos para crear un grupo.</small>";
+  :"<small style='color:var(--mute)'>Aún no tienes contactos. Puedes crear el grupo sin añadir a nadie.</small>";
  $("#gmodal").classList.add("on");
  $("#gnombre").focus();
 };
@@ -2380,12 +2802,10 @@ $("#gcrear").onclick=async()=>{
  const nombre=$("#gnombre").value.trim();
  if(!nombre)return toast("Escribe un nombre para el grupo");
  const miembros=[...document.querySelectorAll("#glista input:checked")].map(i=>i.value);
- if(!miembros.length)return toast("Elige al menos una persona");
  const conCodigo=$("#gcodOn").checked;
- const codNombre=$("#gcodNombre").value.trim();
+ const codNombre=$("#gcodNombre").value.trim()||"Código del grupo";
  const cod=$("#gcod").value.trim();
- if(conCodigo&&(!codNombre||!/^[a-zA-Z0-9]{1,5}$/.test(cod)))
-  return toast("Pon el nombre del código y un código de 1 a 5 letras o números");
+ if(conCodigo&&!/^[a-zA-Z0-9]{1,5}$/.test(cod))return toast("El código debe tener 1 a 5 letras o números");
  const id=crypto.randomUUID();
  const btn=$("#gcrear");
  btn.disabled=true;
@@ -2410,8 +2830,8 @@ $("#gcrear").onclick=async()=>{
    p_cod_hash:hashCod
   });
   if(error)throw error;
-  if(conCodigo)marcarDesbloqueado(id);
   $("#gmodal").classList.remove("on");
+  marcarGrupoCreado(id);
   toast("Grupo creado");
   await loadChats();
   await loadCodigosGrupos();
@@ -2430,11 +2850,11 @@ async function loadCodigosGrupos(){
  if(error){console.warn("No se cargaron los códigos de los grupos:",error.message);return}
  grupoCodigos=new Map((data||[]).map(r=>[r.id,r]));
 }
-let desbloq=(()=>{try{return JSON.parse(localStorage.getItem("cs_desbloq")||"[]")}catch(e){return []}})();
+let desbloq=(()=>{try{return JSON.parse(sessionStorage.getItem("cs_desbloq")||"[]")}catch(e){return []}})();
 function marcarDesbloqueado(id){
  if(!desbloq.includes(id)){
   desbloq.push(id);
-  try{localStorage.setItem("cs_desbloq",JSON.stringify(desbloq))}catch(e){}
+  try{sessionStorage.setItem("cs_desbloq",JSON.stringify(desbloq))}catch(e){}
  }
 }
 async function sha256(t){
@@ -2590,7 +3010,14 @@ function reproducirSaludoDe(c){
 // ---------- Estados (24 horas, solo contactos) ----------
 let estados=[],estadosUsers=new Map(),estadosVistos=new Set();
 let evItems=[],evIdx=0,evT=null,evUid=null;
+// (faltaban: avHtml las usa para el aro de estado)
+function hayEstado(uid){return estados.some(e=>e.user_id===uid)}
+function estadoVisto(uid){
+ const it=estados.filter(e=>e.user_id===uid);
+ return it.length>0&&it.every(e=>uid===me.id||estadosVistos.has(e.id));
+}
 async function cargarEstados(){
+ if(!me.id)return;
  const {data,error}=await sb.from("estados").select("id,user_id,tipo,texto,foto_path,fondo,created_at,expira_at,musica_path,musica_yt").gt("expira_at",new Date().toISOString()).order("created_at",{ascending:true});
  if(error){console.warn("No se cargaron los estados:",error.message);return}
  estados=data||[];
@@ -2846,16 +3273,28 @@ function cerrarMenuChat(){$("#chmodal").classList.remove("on")}
 function abrirMenuChat(c){
  $("#chmodal-body").innerHTML=`<b>${esc(c.n)}</b>
   <button class="btn-a" id="cm-sil" type="button">${silenciados.includes(c.id)?"Quitar silencio":"Silenciar"}</button>
+  <button class="btn-a" id="cm-pin" type="button">${chatsAnclados.includes(c.id)?"Desanclar chat":"Anclar chat"}</button>
+  <button class="btn-a" id="cm-unread" type="button">Marcar no leído</button>
+  <button class="btn-a" id="cm-media" type="button">📷 Medios</button>
+  <button class="btn-a" id="cm-efimero" type="button">Temporizador mensajes</button>
   <button class="btn-a" id="cm-arch" type="button">${archivados.includes(c.id)?"Desarchivar":"Archivar"}</button>
   <button class="btn-a" id="cm-borrar" type="button">Borrar de mi lista</button>
   ${!c.isGroup&&c.other?'<button class="btn-a" id="cm-apodo" type="button">Cambiar apodo (solo tú lo ves)</button>':""}
   <button class="btn-a" id="cm-fondo" type="button">Cambiar fondo del chat</button>
   ${fondosChat[c.id]?'<button class="btn-a" id="cm-quitarfondo" type="button">Quitar fondo</button>':""}
+  ${c.isGroup?'<button class="btn-a" id="cm-ginfo" type="button">👥 Info del grupo / roles</button>':""}
+  <button class="btn-a" id="cm-poll" type="button">📊 Crear encuesta</button>
+  <button class="btn-a" id="cm-prog" type="button">Programar mensaje o recordatorio</button>
   <button class="btn-a" id="cm-captura" type="button">Enviar captura de pantalla</button>
   <button class="link" id="cm-cerrar" type="button">Cerrar</button>`;
  $("#chmodal").classList.add("on");
  $("#cm-cerrar").onclick=cerrarMenuChat;
  $("#cm-sil").onclick=()=>{cerrarMenuChat();toggleSilencio(c.id)};
+ $("#cm-pin")&&($("#cm-pin").onclick=()=>{const on=chatsAnclados.includes(c.id);chatsAnclados=chatsAnclados.filter(x=>x!==c.id);if(!on){chatsAnclados.unshift(c.id);chatsAnclados=chatsAnclados.slice(0,5)}guardarPins();drawList();cerrarMenuChat();toast(on?"Desanclado":"Anclado")});
+ $("#cm-unread")&&($("#cm-unread").onclick=()=>{noLeidosForzados[c.id]=Math.max(1,c.u||1);guardarUnread();c.u=noLeidosForzados[c.id];cerrarMenuChat();leaveChat();drawList();toast("No leído")});
+ $("#cm-media")&&($("#cm-media").onclick=()=>{cerrarMenuChat();abrirMedios(c)});
+ $("#cm-efimero")&&($("#cm-efimero").onclick=()=>{const v=prompt("Horas (24, 168) o 0:",String(efimeros[c.id]||0));const n=parseInt(v||"",10);if(isNaN(n)||n<0)return;if(n===0)delete efimeros[c.id];else efimeros[c.id]=n;guardarEfimeros();cerrarMenuChat();toast(n?"Temporizador "+n+" h":"Sin temporizador")});
+
  $("#cm-arch").onclick=()=>{
   if(archivados.includes(c.id))archivados=archivados.filter(x=>x!==c.id);
   else archivados.push(c.id);
@@ -2873,6 +3312,9 @@ function abrirMenuChat(c){
   leaveChat();
   toast("Chat borrado de tu lista");
  };
+ $("#cm-ginfo")&&($("#cm-ginfo").onclick=()=>{cerrarMenuChat();abrirInfoGrupo(c)});
+ $("#cm-poll").onclick=()=>{cerrarMenuChat();abrirEncuesta(c)};
+ $("#cm-prog").onclick=()=>{cerrarMenuChat();programarMensaje(c)};
  $("#cm-captura").onclick=()=>{cerrarMenuChat();capturarPantalla(c)};
  $("#cm-fondo").onclick=()=>{cerrarMenuChat();fondoChatTarget=c.id;fondoIn.click()};
  $("#cm-quitarfondo")?.addEventListener("click",()=>{cerrarMenuChat();delete fondosChat[c.id];guardarFondos();aplicarFondoChat(c);toast("Fondo quitado")});
@@ -2949,53 +3391,6 @@ function decirLlamada(nombre){
 }
 
 // ---------- Compartir pantalla y música en estados ----------
-let pantallaStream=null;
-async function renegociar(){
- try{
-  const pc=call.pc;
-  const offer=await pc.createOffer();
-  await pc.setLocalDescription(offer);
-  sendSig({t:"offer",sdp:{type:offer.type,sdp:offer.sdp}});
- }catch(err){console.warn("No se pudo renegociar:",err)}
-}
-async function compartirPantalla(){
- if(!call||!call.pc){toast("Primero conecta la llamada");return}
- if(pantallaStream){pararCompartir();return}
- if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia){
-  toast("Tu navegador de móvil no permite compartir pantalla. Esto funciona en ordenador (Chrome o Edge).");
-  return;
- }
- let s;
- try{s=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false})}
- catch(err){toast("Compartir cancelado");return}
- pantallaStream=s;
- const track=s.getVideoTracks()[0];
- track.onended=()=>pararCompartir();
- const pc=call.pc;
- const sender=pc.getSenders().find(x=>x.track&&x.track.kind==="video");
- if(sender)await sender.replaceTrack(track);
- else pc.addTrack(track,s);
- $("#cshare")?.classList.add("on");
- toast("Compartiendo pantalla");
-}
-async function pararCompartir(){
- if(!pantallaStream)return;
- const track=pantallaStream.getVideoTracks()[0];
- pantallaStream.getTracks().forEach(t=>t.stop());
- pantallaStream=null;
- const pc=call&&call.pc;
- if(pc){
-  const sender=pc.getSenders().find(x=>x.track===track);
-  if(sender){
-   if(call.kind==="video"&&call.stream){
-    const cam=call.stream.getVideoTracks()[0]||null;
-    await sender.replaceTrack(cam);
-   }else pc.removeTrack(sender);
-  }
- }
- $("#cshare")?.classList.remove("on");
-}
-$("#cshare").onclick=compartirPantalla;
 
 // Música en los estados
 let estMusica=null;
@@ -3027,23 +3422,41 @@ $("#est-musica-file").onchange=e=>{
 };
 
 // ---------- Tiempo real ----------
+function debounce(fn,ms){let t=null;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}}
+const recargarChats=debounce(async()=>{await loadChats();refrescarMensajes()},500);
+function onProfileUpdate(n){
+ if(!n||!n.id)return;
+ chats.forEach(c=>{
+  if(c.isGroup||c.other?.id!==n.id)return;
+  c.other={...c.other,...n};
+  const nm=contactAlias[n.id]||n.display_name||"Chat";
+  c.n=nm;c.c=initial(nm);
+ });
+ const ct=contacts.find(x=>x.id===n.id);
+ if(ct)Object.assign(ct,n);
+ if(n.foto_privada)privadas.add(n.id);else privadas.delete(n.id);
+ drawList();
+}
 function subscribe(){
  chan=sb.channel("chatstack")
   .on("postgres_changes",{event:"INSERT",schema:"public",table:"messages"},p=>onNewMsg(p.new))
-  .on("postgres_changes",{event:"*",schema:"public",table:"conversation_members"},async()=>{await loadChats();refrescarMensajes()})
-  .on("postgres_changes",{event:"*",schema:"public",table:"conversations"},()=>loadChats())
-  .on("postgres_changes",{event:"UPDATE",schema:"public",table:"profiles"},p=>{
-    const c=chats.find(x=>x.other?.id===p.new.id);
-    if(c){c.other={...c.other,...p.new};drawList()}
-  })
+  .on("postgres_changes",{event:"UPDATE",schema:"public",table:"messages"},p=>onMsgUpdate(p.new))
+  .on("postgres_changes",{event:"*",schema:"public",table:"conversation_members"},recargarChats)
+  .on("postgres_changes",{event:"*",schema:"public",table:"conversations"},recargarChats)
+  .on("postgres_changes",{event:"UPDATE",schema:"public",table:"profiles"},p=>onProfileUpdate(p.new))
   .on("postgres_changes",{event:"INSERT",schema:"public",table:"calls"},p=>onCallInsert(p.new))
   .on("postgres_changes",{event:"UPDATE",schema:"public",table:"calls"},p=>onCallRow(p.new))
-  .on("postgres_changes",{event:"UPDATE",schema:"public",table:"profiles"},async()=>{await Promise.all([loadChats(),loadContacts(),loadPrivadas()]);refrescarMensajes()})
   .on("postgres_changes",{event:"*",schema:"public",table:"contacts",filter:"owner_id=eq."+me.id},()=>loadContacts())
   .on("postgres_changes",{event:"*",schema:"public",table:"estados"},()=>cargarEstados())
-  .on("postgres_changes",{event:"*",schema:"public",table:"solicitudes_contacto"},()=>cargarSolicitudes())
   .on("postgres_changes",{event:"*",schema:"public",table:"blocks",filter:"blocker_id=eq."+me.id},()=>loadBloqueos())
-  .on("postgres_changes",{event:"*",schema:"public",table:"conversations"},async()=>{await loadChats();refrescarMensajes()})
+  .on("postgres_changes",{event:"*",schema:"public",table:"solicitudes_contacto",filter:"para=eq."+me.id},()=>cargarSolicitudes())
+  .on("postgres_changes",{event:"*",schema:"public",table:"poll_votes"},p=>{
+   const v=p.eventType==="DELETE"?p.old:p.new;
+   if(!v||!v.message_id)return;
+   const vs=votosPoll[v.message_id]||(votosPoll[v.message_id]={});
+   if(p.eventType==="DELETE")delete vs[v.user_id];else vs[v.user_id]=v.option_idx;
+   refrescarMensajes();
+  })
   .subscribe();
 }
 
@@ -3072,7 +3485,7 @@ $("#pnow").onclick=closePerm;
  const desc=p.get("error_description")||p.get("error");
  if(desc){
   history.replaceState(null,"",location.pathname+location.search);
-  setErr("Google devolvió un error: "+desc.replace(/\+/g," "));
+  setErr("Error al entrar: "+desc.replace(/\+/g," "));
  }
 })();
 async function manejarSesion(session){
@@ -3088,6 +3501,7 @@ async function manejarSesion(session){
     latido();
     subscribe();
     procesarLlamada(new URLSearchParams(location.search));
+    try{retomarInvitacion()}catch(e){}
     if(location.search.includes("llamada="))history.replaceState(null,"",location.pathname);
    }catch(err){
     console.error("Error al cargar datos:",err);
@@ -3097,7 +3511,8 @@ async function manejarSesion(session){
    }
   }
  }else{
-  started=false;me.id=null;chats=[];people=[];contacts=[];curId=null;
+  started=false;me.id=null;chats=[];people=[];contacts=[];curId=null;solicitudes=[];
+  clearInterval(latidoT);cerrarEscritura();
   if(chan){sb.removeChannel(chan);chan=null}
   app.classList.remove("chat");
   $("#apass").value="";
@@ -3107,7 +3522,7 @@ async function manejarSesion(session){
 }
 sb.auth.onAuthStateChange((_ev,session)=>{setTimeout(()=>manejarSesion(session),0)});
 // ---------- Llamadas 1 a 1 (WebRTC, STUN) ----------
-const RTC={iceServers:[{urls:"stun:stun.l.google.com:19302"}]};
+const RTC={iceServers:[{urls:"stun:stun.l.google.com:19302"},{urls:"stun:stun1.l.google.com:19302"},{urls:"turn:openrelay.metered.ca:80",username:"openrelayproject",credential:"openrelayproject"},{urls:"turn:openrelay.metered.ca:443",username:"openrelayproject",credential:"openrelayproject"},{urls:"turn:openrelay.metered.ca:443?transport=tcp",username:"openrelayproject",credential:"openrelayproject"}]};
 let call=null;      // {id,chat,kind,role,pc,stream,chan,startedAt,tick,ringT,pending}
 let incoming=null;  // {row,c,t}
 
@@ -3116,6 +3531,7 @@ function showCallUI(c,kind,st){
  el.classList.toggle("vid",kind==="video");
  el.classList.add("on");
  $("#cself").hidden=kind!=="video";
+ $("#cmic").classList.remove("off");$("#ccam").classList.remove("off");
  $("#cav").textContent=c.c;$("#cav").className="av";
  $("#cn").textContent=c.n;
  $("#cst").textContent=st;
@@ -3146,10 +3562,7 @@ function makePeer(){
  pc.onicecandidate=e=>{if(e.candidate)sendSig({t:"ice",c:e.candidate.toJSON()})};
  pc.ontrack=e=>{
   const s=e.streams[0];
-  if(e.track.kind==="video"){
-   $("#rvid").srcObject=s;
-   $("#rvid").style.display="block";
-  }else if(call.kind==="video")$("#rvid").srcObject=s;
+  if(call.kind==="video")$("#rvid").srcObject=s;
   else $("#raud").srcObject=s;
  };
  pc.onconnectionstatechange=()=>{
@@ -3169,16 +3582,7 @@ async function flushIce(){
 async function onSignal(m){
  if(!call)return;
  try{
-  if(call.startedAt&&call.pc&&m.t==="offer"&&call.pc.signalingState==="stable"){
-   await call.pc.setRemoteDescription(m.sdp);
-   const ans=await call.pc.createAnswer();
-   await call.pc.setLocalDescription(ans);
-   sendSig({t:"answer",sdp:{type:ans.type,sdp:ans.sdp}});
-  }
-  else if(call.startedAt&&call.pc&&m.t==="answer"&&call.pc.signalingState==="have-local-offer"){
-   await call.pc.setRemoteDescription(m.sdp);
-  }
-  else if(m.t==="ready"&&call.role==="caller"){
+  if(m.t==="ready"&&call.role==="caller"){
    call.pc=makePeer();
    const offer=await call.pc.createOffer();
    await call.pc.setLocalDescription(offer);
@@ -3203,8 +3607,7 @@ async function onSignal(m){
  }catch(err){console.warn(err);toast("Error de conexión en la llamada")}
 }
 function onConnected(){
- if(call&&call.pc)call.pc.onnegotiationneeded=renegociar;
- if(saludoAudio){saludoAudio.pause();saludoAudio=null}
+  if(saludoAudio){saludoAudio.pause();saludoAudio=null}
  quitarPerdida(call.id);
  if(call.ringT){clearTimeout(call.ringT);call.ringT=null}
  call.startedAt=Date.now();
@@ -3212,7 +3615,7 @@ function onConnected(){
  call.tick=setInterval(()=>{
   if(call&&call.startedAt)$("#ctime").textContent=fmt(Math.floor((Date.now()-call.startedAt)/1000));
  },1000);
- if(call.role==="callee")sb.from("calls").update({status:"active"}).eq("id",call.id);
+ if(call.role==="callee")sb.from("calls").update({status:"active"}).eq("id",call.id).then(()=>{},()=>{});
 }
 
 // Termina la llamada en este dispositivo. Solo el que llamó registra el mensaje.
@@ -3245,7 +3648,7 @@ async function hangupMine(){
 
 async function startCall(c,video){
  if(call||incoming){toast("Ya tienes una llamada en curso");return}
- if(c.isGroup){toast("Las llamadas de grupo aún no están disponibles");return}
+ // Grupos: misma señalización; varios participantes pueden unirse (mesh básico)
  const kind=video?"video":"voice";
  const id=crypto.randomUUID();
  showCallUI(c,kind,"Llamando…");
@@ -3261,7 +3664,7 @@ async function startCall(c,video){
 }
 
 const llamadasVistas=new Set();
-const DEBUG_LLAMADAS=true; // diagnóstico temporal: muestra por qué no suena una llamada
+const DEBUG_LLAMADAS=false; // diagnóstico temporal: muestra por qué no suena una llamada
 const dbgVistos=new Set();
 function dbgLlamada(id,m){
  if(!DEBUG_LLAMADAS)return;
@@ -3337,6 +3740,7 @@ async function rejectCall(){
  if(!incoming)return;
  const id=incoming.row.id;
  hideIncoming();
+ quitarPerdida(id);
  await sb.from("calls").update({status:"rejected"}).eq("id",id);
 }
 // Cambios de estado de una llamada (los hace el otro usuario o nosotros)
@@ -3357,11 +3761,411 @@ $("#ccam").onclick=e=>{
  if(call&&call.stream)call.stream.getVideoTracks().forEach(t=>t.enabled=!off);
 };
 
+
+// ===== Extra features runtime =====
+function urlVideo(path){if(!path)return "";try{return sb.storage.from("videos").getPublicUrl(path).data.publicUrl}catch(e){return sb.storage.from("fotos").getPublicUrl(path).data.publicUrl}}
+let vnRec=null,vnStream=null,vnChunks=[],vnChat=null,vnTick=null,vnStart=0;
+function playNotaVideo(el){const v=el.querySelector("video");if(!v)return;if(v.paused){document.querySelectorAll(".vn video").forEach(x=>{if(x!==v){x.pause();x.closest(".vn")?.classList.remove("playing")}});v.muted=false;v.play().catch(()=>{});el.classList.add("playing")}else{v.pause();el.classList.remove("playing")}v.onended=()=>el.classList.remove("playing")}
+async function empezarNotaVideo(c){if(vnRec)return;vnChat=c;vnChunks=[];let stream;try{stream=await navigator.mediaDevices.getUserMedia({audio:true,video:{facingMode:"user",width:{ideal:480},height:{ideal:480}}})}catch(err){return toast("Sin cámara/mic: "+err.message)}vnStream=stream;const p=$("#vnprev");if(p)p.srcObject=stream;$("#vnrec").classList.add("on");const mime=MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")?"video/webm;codecs=vp9,opus":MediaRecorder.isTypeSupported("video/webm")?"video/webm":"";try{vnRec=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream)}catch(err){pararNotaVideo(true);return toast("No se pudo grabar")}vnRec.ondataavailable=e=>{if(e.data&&e.data.size)vnChunks.push(e.data)};vnRec.onstop=async()=>{clearInterval(vnTick);const blob=new Blob(vnChunks,{type:(vnRec&&vnRec.mimeType)||"video/webm"});const chat=vnChat;pararNotaVideo(true);if(!chat||blob.size<1000)return toast("Vídeo corto");toast("Subiendo…");const path=me.id+"/"+Date.now()+"_note.webm";let error;({error}=await sb.storage.from("videos").upload(path,blob,{contentType:blob.type}));if(error)({error}=await sb.storage.from("fotos").upload(path,blob,{contentType:blob.type}));if(error)return toast(error.message);await send(chat,{kind:"video_note",media_path:path,body:String(Math.max(1,Math.round((Date.now()-vnStart)/1000)))})};vnRec.start(200);vnStart=Date.now();$("#vntimer").textContent="0:00";vnTick=setInterval(()=>{const s=Math.floor((Date.now()-vnStart)/1000);$("#vntimer").textContent=Math.floor(s/60)+":"+String(s%60).padStart(2,"0");if(s>=60)pararNotaVideo(false)},250)}
+function pararNotaVideo(cancelar){clearInterval(vnTick);if(vnRec&&vnRec.state==="recording"){if(cancelar)vnRec.onstop=null;try{vnRec.stop()}catch(e){}}vnRec=null;if(vnStream){vnStream.getTracks().forEach(t=>t.stop());vnStream=null}const p=$("#vnprev");if(p)p.srcObject=null;$("#vnrec").classList.remove("on");if(cancelar)vnChat=null}
+$("#vnstop")&&($("#vnstop").onclick=()=>pararNotaVideo(false));
+$("#vncancel")&&($("#vncancel").onclick=()=>pararNotaVideo(true));
+let liveWatchId=null,liveMsgId=null,liveChatId=null,liveUntil=0;
+function htmlLiveLoc(m){const L=m.live||{},lat=L.lat,lng=L.lng,viva=L.expira&&new Date(L.expira)>new Date()&&L.active!==false,maps=lat!=null?"https://maps.google.com/?q="+lat+","+lng:"",osm=lat!=null?`https://www.openstreetmap.org/export/embed.html?bbox=${lng-0.01}%2C${lat-0.01}%2C${lng+0.01}%2C${lat+0.01}&layer=mapnik&marker=${lat}%2C${lng}`:"",hasta=L.expira?new Date(L.expira).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"";return `<div class="live-loc${viva?"":" ll-off"}"><div class="ll-map">${osm?`<iframe src="${esc(osm)}" loading="lazy"></iframe>`:""}<span class="ll-dot"></span></div><b>${viva?"📍 En vivo":"📍 Última ubicación"}</b><small>${viva?"Hasta "+hasta:""}</small>${maps?`<a href="${esc(maps)}" target="_blank" rel="noopener">Mapas</a>`:""}${m.k==="out"&&viva?`<button type="button" class="btn-a" data-stoplive="${esc(m.id)}">Detener</button>`:""}</div>`}
+function abrirUbicacionMenu(c){window._liveChat=c;$("#livemodal").classList.add("on")}
+$("#livecerrar")&&($("#livecerrar").onclick=()=>$("#livemodal").classList.remove("on"));
+$("#livemodal")&&($("#livemodal").onclick=e=>{const b=e.target.closest("[data-live]");if(!b)return;$("#livemodal").classList.remove("on");const mins=+b.dataset.live,c=window._liveChat;if(!c)return;if(mins===0){navigator.geolocation.getCurrentPosition(pos=>send(c,{kind:"text",body:"Mi ubicación: https://maps.google.com/?q="+pos.coords.latitude+","+pos.coords.longitude}),err=>toast(err.message),{enableHighAccuracy:true,timeout:12000})}else iniciarUbicacionViva(c,mins)});
+async function iniciarUbicacionViva(c,mins){if(liveWatchId)return toast("Ya hay una en vivo");navigator.geolocation.getCurrentPosition(async pos=>{const expira=new Date(Date.now()+mins*60000).toISOString();const live={lat:pos.coords.latitude,lng:pos.coords.longitude,expira,active:true};const {data,error}=await sb.from("messages").insert({conversation_id:c.id,sender_id:me.id,kind:"live_location",body:JSON.stringify(live)}).select().single();if(error)return toast(error.message);onNewMsg(data);liveMsgId=data.id;liveChatId=c.id;liveUntil=Date.now()+mins*60000;sb.from("live_locations").upsert({message_id:data.id,user_id:me.id,conversation_id:c.id,lat:live.lat,lng:live.lng,expira,active:true,updated_at:new Date().toISOString()}).then(()=>{},()=>{});liveWatchId=navigator.geolocation.watchPosition(async p=>{if(Date.now()>liveUntil)return detenerUbicacionViva(liveMsgId);const next={lat:p.coords.latitude,lng:p.coords.longitude,expira,active:true};await sb.from("messages").update({body:JSON.stringify(next)}).eq("id",liveMsgId);const chat=chats.find(x=>x.id===liveChatId);const msg=chat&&chat.m.find(x=>x.id===liveMsgId);if(msg){msg.live=next;if(curId===liveChatId)refrescarMensajes()}},()=>{},{enableHighAccuracy:true,maximumAge:5000});toast("Ubicación en vivo "+mins+" min")},err=>toast(err.message),{enableHighAccuracy:true})}
+async function detenerUbicacionViva(msgId){if(liveWatchId!=null)navigator.geolocation.clearWatch(liveWatchId);liveWatchId=null;const id=msgId||liveMsgId;if(!id)return;const chat=chats.find(x=>x.id===liveChatId)||curChat();const msg=chat&&chat.m.find(x=>x.id===id);const live=(msg&&msg.live)||{};live.active=false;live.expira=new Date().toISOString();await sb.from("messages").update({body:JSON.stringify(live)}).eq("id",id);if(msg){msg.live=live;refrescarMensajes()}liveMsgId=null;liveChatId=null;toast("Ubicación detenida")}
+
+// Unirse por código
+
+// ---- Enlaces de invitación (solo Owner) con caducidad ----
+function gruposCreados(){try{const v=JSON.parse(localStorage.getItem("cs_grupos_creados")||"[]");return Array.isArray(v)?v:[]}catch(e){return []}}
+function marcarGrupoCreado(id){try{const l=gruposCreados();if(id&&!l.includes(id)){l.push(id);localStorage.setItem("cs_grupos_creados",JSON.stringify(l))}}catch(e){}}
+// URL pública (https) para los enlaces de invitación.
+// Si abres el archivo desde el móvil (content://, file://) no sirve: se usa tu URL alojada.
+const URL_PUBLICA_CHATSTACK="";// <- pon aquí tu URL https si quieres fijarla, p. ej. "https://tu-chatstack.vercel.app/"
+function urlPublicaChatStack(cambiar){
+ if(!cambiar&&/^https?:$/.test(location.protocol)&&!/^(localhost|127\.|0\.0\.0\.0)/.test(location.hostname))return location.origin+location.pathname;
+ if(URL_PUBLICA_CHATSTACK&&/^https:\/\//i.test(URL_PUBLICA_CHATSTACK)&&!cambiar)return URL_PUBLICA_CHATSTACK;
+ let g="";try{g=localStorage.getItem("cs_url_publica")||""}catch(e){}
+ if(!cambiar&&/^https:\/\//i.test(g))return g;
+ const v=(prompt("Pega la URL https donde tienes alojado ChatStack (ej: https://tu-chatstack.vercel.app/)",g||"https://")||"").trim();
+ if(!/^https:\/\/[^\s]+\.[^\s]+/i.test(v)){toast("Tiene que empezar por https://");return ""}
+ try{localStorage.setItem("cs_url_publica",v)}catch(e){}
+ return v;
+}
+function puedoCrearEnlace(c){return !!(c&&c.isGroup&&(soyAdminGrupo(c)||soyOwnerGrupo(c)))}
+function soyOwnerGrupo(c){
+ if(!c||!c.isGroup)return false;
+ const r=String(c.myRole||"").toLowerCase();
+ if(r==="owner")return true;
+ if(window._grpCreador&&me&&window._grpCreador[c.id]===me.id)return true;
+ if(gruposCreados().includes(c.id))return true;
+ // Grupo sin ningún owner: el único admin es quien lo creó
+ const mf=c.membersFull||[];
+ const rol=m=>String(m.role||"").toLowerCase();
+ if(r==="admin"&&!mf.some(m=>rol(m)==="owner")&&mf.filter(m=>rol(m)==="admin").length<=1){marcarGrupoCreado(c.id);return true}
+ return false
+}
+async function copiarTexto(t){
+ try{await navigator.clipboard.writeText(t);return true}catch(e){}
+ try{const ta=document.createElement("textarea");ta.value=t;ta.style.cssText="position:fixed;opacity:0;top:0;left:0";document.body.appendChild(ta);ta.focus();ta.select();const ok=document.execCommand("copy");ta.remove();return ok}catch(e){return false}
+}
+$("#ginfo-link")&&($("#ginfo-link").onclick=()=>{
+ const c=curChat();if(!c||!c.isGroup)return;
+ if(!puedoCrearEnlace(c))return toast("Solo un admin puede generar enlaces");
+ $("#lk-dias").value="7";$("#lk-out").hidden=true;$("#lk-val").value="";
+ $("#linkmodal").classList.add("on");
+});
+document.querySelectorAll("[data-lkd]").forEach(b=>b.onclick=()=>{$("#lk-dias").value=b.dataset.lkd});
+$("#lk-cerrar")&&($("#lk-cerrar").onclick=()=>$("#linkmodal").classList.remove("on"));
+$("#lk-copy")&&($("#lk-copy").onclick=async()=>{toast(await copiarTexto($("#lk-val").value)?"Enlace copiado":"Mantén pulsado el enlace para copiarlo")});
+$("#lk-gen")&&($("#lk-gen").onclick=async()=>{
+ const c=curChat();if(!c||!c.isGroup)return;
+ if(!puedoCrearEnlace(c))return toast("Solo un admin puede generar enlaces");
+ const d=parseInt($("#lk-dias").value,10);
+ if(isNaN(d)||d<0||d>365)return toast("Pon entre 0 y 365 días (0 = sin caducidad)");
+ const btn=$("#lk-gen");btn.disabled=true;
+ try{
+  const {data,error}=await sb.rpc("crear_invitacion_grupo",{p_conv:c.id,p_days:d});
+  if(error||!data)return toast((error&&error.message)||"No se pudo crear el enlace");
+  const base=urlPublicaChatStack();
+  if(!base)return toast("Necesito la URL https donde tienes alojado ChatStack");
+  const u=new URL(base);u.search="";u.hash="";u.searchParams.set("join",data);
+  const url=u.toString();
+  $("#lk-val").value=url;
+  $("#lk-info").textContent=d>0?"Caduca en "+d+" día"+(d>1?"s":""):"No caduca";
+  $("#lk-out").hidden=false;
+  toast(await copiarTexto(url)?"Enlace copiado al portapapeles":"Enlace listo: toca «Copiar otra vez»");
+ }finally{btn.disabled=false}
+});
+$("#ginfo-add")&&($("#ginfo-add").onclick=async()=>{
+ const c=curChat();if(!c||!c.isGroup)return;
+ if(!soyAdminGrupo(c)&&c.myRole!=="admin")return toast("Solo un admin puede añadir miembros");
+ const ya=new Set((c.membersFull||[]).map(m=>m.id));
+ ya.add(me.id);
+ const disponibles=contacts.filter(p=>!ya.has(p.id));
+ if(!disponibles.length)return toast("No hay contactos nuevos para añadir");
+ const pick=prompt("Escribe el nombre o deja la lista:\\n"+disponibles.map((p,i)=>(i+1)+". "+(contactAlias[p.id]||p.display_name||p.id)).join("\\n")+"\\n\\nNúmero de la lista:");
+ if(!pick)return;
+ const idx=parseInt(pick,10)-1;
+ const persona=disponibles[idx];
+ if(!persona)return toast("Opción no válida");
+ const {error}=await sb.from("conversation_members").insert({conversation_id:c.id,user_id:persona.id,role:"member"});
+ if(error)return toast(error.message);
+ toast("Añadido: "+(contactAlias[persona.id]||persona.display_name));
+ await loadChats();
+ abrirInfoGrupo(chats.find(x=>x.id===c.id)||c);
+});
+$("#ginfo-cd")&&($("#ginfo-cd").onclick=()=>{
+ const c=curChat();if(!c||!c.isGroup)return;
+ if(!soyAdminGrupo(c))return toast("Solo un admin puede cambiar el cooldown");
+ const cur=cooldownGrupo[c.id]||0;
+ const v=prompt("Segundos mínimos entre mensajes de cada persona (0 = sin límite):", String(cur));
+ if(v===null)return;
+ const n=parseInt(v,10);
+ if(isNaN(n)||n<0||n>3600)return toast("Usa un número entre 0 y 3600");
+ if(n===0)delete cooldownGrupo[c.id];else cooldownGrupo[c.id]=n;
+ guardarCooldown();
+ toast(n?"Cooldown: "+n+" s":"Sin cooldown");
+});
+
+// Invitación por enlace ?join=HASH
+async function procesarInvitacionURL(){
+ const params=new URLSearchParams(location.search);
+ const hash=params.get("join");
+ if(!hash||hash.length<16)return;
+ window._joinHash=hash;
+ // limpiar URL sin recargar
+ try{
+  const u=new URL(location.href);
+  u.searchParams.delete("join");
+  history.replaceState({},"",u.pathname+u.search+u.hash);
+ }catch(e){}
+ if(!me.id){
+  // guardar para despues del login
+  try{localStorage.setItem("cs_pending_join",hash)}catch(e){}
+  toast("Inicia sesión para unirte al grupo");
+  return;
+ }
+ await mostrarInvitacion(hash);
+}
+function retomarInvitacion(){
+ let h=null;try{h=localStorage.getItem("cs_pending_join");localStorage.removeItem("cs_pending_join")}catch(e){}
+ if(h&&me.id)mostrarInvitacion(h);
+}
+async function mostrarInvitacion(hash){
+ window._inviteHash=null;
+ let info=null,err=null;
+ try{const {data,error}=await sb.rpc("preview_invitacion_grupo",{p_token:hash});if(error)err=error.message;else info=data}catch(e){err=e.message}
+ const yes=$("#invite-yes"),no=$("#invite-no");
+ $("#invite-foto").style.display="none";
+ $("#invite-av").style.display="grid";
+ if(!info){
+  $("#invite-title").textContent="Enlace no válido";
+  $("#invite-sub").textContent=err||"Este enlace ya no funciona.";
+  $("#invite-av").textContent="!";
+  yes.style.display="none";no.style.display="none";
+  $("#invitemodal").classList.add("on");
+  return;
+ }
+ const title=info.title||"Grupo";
+ yes.style.display="";no.style.display="";
+ yes.textContent=info.ya_miembro?"Abrir grupo":"Sí, unirme";
+ $("#invite-title").textContent=title;
+ let sub=info.ya_miembro?"Ya eres miembro de «"+title+"».":"¿Quieres unirte al grupo «"+title+"»?";
+ if(info.expires_at)sub+="\nEl enlace caduca el "+new Date(info.expires_at).toLocaleDateString([],{day:"numeric",month:"long",year:"numeric"})+".";
+ $("#invite-sub").style.whiteSpace="pre-line";
+ $("#invite-sub").textContent=sub;
+ if(info.foto_path){
+  $("#invite-foto").src=urlFoto(info.foto_path);
+  $("#invite-foto").style.display="block";
+  $("#invite-av").style.display="none";
+ }else{
+  $("#invite-av").textContent=(title||"G")[0].toUpperCase();
+ }
+ $("#invitemodal").classList.add("on");
+ window._inviteHash=hash;
+}
+$("#invite-cerrar")&&($("#invite-cerrar").onclick=()=>{$("#invitemodal").classList.remove("on");window._inviteHash=null});
+$("#invite-no")&&($("#invite-no").onclick=()=>{$("#invitemodal").classList.remove("on");window._inviteHash=null;toast("No te has unido")});
+$("#invite-yes")&&($("#invite-yes").onclick=async()=>{
+ const hash=window._inviteHash;if(!hash)return;
+ $("#invitemodal").classList.remove("on");
+ const {data,error}=await sb.rpc("unirse_invitacion_grupo",{p_token:hash});
+ if(error)return toast(error.message||"No se pudo unir");
+ try{marcarDesbloqueado(data)}catch(e){}
+ try{localStorage.removeItem("cs_pending_join")}catch(e){}
+ toast("Te has unido al grupo");
+ await loadChats();await loadCodigosGrupos();drawList();
+ openChat(data);
+});
+
+
+function abrirUnirseCodigo(){$("#joincod").value="";$("#joinmsg").textContent="";$("#joinmodal").classList.add("on");$("#joincod").focus()}
+$("#joincerrar")&&($("#joincerrar").onclick=()=>$("#joinmodal").classList.remove("on"));
+$("#joinok")&&($("#joinok").onclick=async()=>{
+ const cod=$("#joincod").value.trim();
+ if(!/^[a-zA-Z0-9]{1,5}$/.test(cod)){$("#joinmsg").textContent="Código inválido";return}
+ const hash=await sha256(cod);
+ // RPC preferido
+ let {data,error}=await sb.rpc("unirse_grupo_por_codigo",{p_hash:hash});
+ if(error){
+  // fallback: buscar en conversaciones visibles (solo funciona si RLS lo permite)
+  const res=await sb.from("conversations").select("id,title,codigo_hash,codigo_nombre").eq("is_group",true).eq("codigo_hash",hash).maybeSingle();
+  if(res.error||!res.data){$("#joinmsg").textContent="Código incorrecto o sin permiso de búsqueda";return}
+  const ins=await sb.from("conversation_members").insert({conversation_id:res.data.id,user_id:me.id});
+  if(ins.error&&!/duplicate|unique/i.test(ins.error.message)){$("#joinmsg").textContent=ins.error.message;return}
+  data=res.data.id;marcarDesbloqueado(res.data.id);
+ }else{
+  marcarDesbloqueado(data);
+ }
+ $("#joinmodal").classList.remove("on");
+ toast("Te has unido al grupo");
+ await loadChats();await loadCodigosGrupos();drawList();openChat(data);
+});
+
+// Soporte
+const SOPORTE_FAQ=[{k:["hola","buenas","hey","hi"],r:"¡Hola! Soy el soporte de ChatStack. Pregunta por grupos, código, vídeo, ubicación, llamadas…"},{k:["codigo","código","grupo","unirse"],r:"Crear grupo: puedes poner solo un código (sin contactos). Otros: botón Unirse con código y escriben ese código."},{k:["video","vídeo","circular"],r:"Botón redondo en la barra del chat para nota de vídeo circular."},{k:["ubicacion","ubicación","vivo"],r:"Respuestas rápidas → Ubicación / en vivo."},{k:["llamada","grupo","videollamada"],r:"En grupos también puedes iniciar llamada o videollamada (varios pueden unirse)."},{k:["reaccion","reacción","buscar","reenviar"],r:"Mantén pulsado un mensaje: reaccionar, copiar, reenviar… Lupa: buscar en el chat."},{k:["error","ayuda"],r:"Recarga, revisa red y permisos."}];
+const SOPORTE_CHIPS=["Hola","Código de grupo","Vídeo","Ubicación","Llamadas","Reacciones"];
+function normTxtSop(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9ñ\s]/g," ").replace(/\s+/g," ").trim()}
+function sopMatch(t0){const t=normTxtSop(t0);let best=null,sc=0;for(const it of SOPORTE_FAQ){let s=0;for(const k of it.k){const nk=normTxtSop(k);if(t===nk)s+=10;else if(t.includes(nk))s+=5}if(s>sc){sc=s;best=it}}return sc>=2?best:null}
+function sopBub(k,txt){return `<div class="m ${k}" style="max-width:92%"><span class="bt" style="white-space:pre-wrap">${esc(txt)}</span><span class="t">${now()}</span></div>`}
+function abrirSoporte(){if(typeof closeDrawer==="function")closeDrawer();$("#sopmsgs").innerHTML=sopBub("in","¡Hola! Soporte ChatStack. Escribe o elige una sugerencia.");$("#sopchips").innerHTML=SOPORTE_CHIPS.map(t=>`<button type="button" class="chip" data-sopchip="${esc(t)}">${esc(t)}</button>`).join("");$("#sopmodal").classList.add("on")}
+function sopResponder(texto){const box=$("#sopmsgs");box.insertAdjacentHTML("beforeend",sopBub("out",texto));const hit=sopMatch(texto);setTimeout(()=>{box.insertAdjacentHTML("beforeend",sopBub("in",hit?hit.r:"Prueba: código, vídeo, ubicación, llamadas…"));box.scrollTop=box.scrollHeight},280)}
+$("#bsoporte")&&($("#bsoporte").onclick=abrirSoporte);
+$("#sopcerrar")&&($("#sopcerrar").onclick=()=>$("#sopmodal").classList.remove("on"));
+$("#sopform")&&($("#sopform").onsubmit=e=>{e.preventDefault();const v=$("#sopinp").value.trim();if(!v)return;$("#sopinp").value="";sopResponder(v)});
+$("#sopchips")&&($("#sopchips").onclick=e=>{const b=e.target.closest("[data-sopchip]");if(b)sopResponder(b.dataset.sopchip)});
+
+// Onboarding
+if(!localStorage.getItem("cs_onboard")){
+ const steps=["Chats, estados y llamadas en una sola app.","Crea grupos con código: quien tenga el código puede unirse.","Nota de vídeo circular, ubicación en vivo y soporte en el perfil."];
+ let i=0;const show=()=>{$("#obtxt").textContent=steps[i];$("#onboard").classList.add("on");$("#obnext").textContent=i<steps.length-1?"Siguiente":"Empezar"};
+ $("#obnext").onclick=()=>{i++;if(i>=steps.length){$("#onboard").classList.remove("on");localStorage.setItem("cs_onboard","1")}else show()};
+ $("#obskip").onclick=()=>{$("#onboard").classList.remove("on");localStorage.setItem("cs_onboard","1")};
+ setTimeout(show,600);
+}
+
+// Pin / unread helpers used from menu long-press text
+const _accionesChat=typeof accionesChat==="function"?accionesChat:null;
+if(_accionesChat){
+ accionesChat=async function(id){
+  const extra=(prompt('Escribe además: "anclar", "desanclar", "no leido", o las opciones de siempre.')||"").trim().toLowerCase();
+  if(extra==="anclar"){chatsAnclados=chatsAnclados.filter(x=>x!==id);chatsAnclados.unshift(id);chatsAnclados=chatsAnclados.slice(0,5);guardarPins();drawList();toast("Chat anclado");return}
+  if(extra==="desanclar"){chatsAnclados=chatsAnclados.filter(x=>x!==id);guardarPins();drawList();toast("Desanclado");return}
+  if(extra==="no leido"||extra==="no leído"){noLeidosForzados[id]=1;guardarUnread();const c=chats.find(x=>x.id===id);if(c)c.u=Math.max(1,c.u||1);drawList();toast("Marcado no leído");return}
+  return _accionesChat(id);
+ }
+}
+
+// Enhance abrirMenuChat via patch of body builder - inject buttons by replacing a known string
+
+
+// ===== Roles de grupo =====
+
+async function refrescarRolesGrupo(c){
+ if(!c||!c.isGroup)return;
+ try{
+  // prefer RPC
+  let rows=null;
+  const rpc=await sb.rpc("listar_miembros_grupo",{p_conv:c.id});
+  if(!rpc.error&&rpc.data){
+   rows=rpc.data.map(r=>({
+    id:r.user_id,
+    role:r.role||"member",
+    roleName:r.role_name||null,
+    roleColor:r.role_color||null,
+    profile:{id:r.user_id,display_name:r.display_name,avatar_url:r.avatar_url}
+   }));
+  }else{
+   const {data}=await sb.from("conversation_members")
+    .select("user_id,role,custom_role_id,profiles(id,display_name,avatar_url),group_roles(name,color)")
+    .eq("conversation_id",c.id);
+   rows=(data||[]).map(r=>({
+    id:r.user_id,
+    role:r.role||"member",
+    roleName:r.group_roles?.name||null,
+    roleColor:r.group_roles?.color||null,
+    profile:r.profiles
+   }));
+  }
+  if(rows){
+   c.membersFull=rows;
+   const meRow=rows.find(x=>x.id===me.id);
+   if(meRow)c.myRole=meRow.roleName||meRow.role||"member";
+  }
+ }catch(e){console.warn("roles grupo",e)}
+}
+
+function soyAdminGrupo(c){if(!c||!c.isGroup)return false;const r=String(c.myRole||"").toLowerCase();return r==="admin"||r==="owner"||r.includes("admin")||r.includes("owner")}
+async function abrirInfoGrupo(c){
+ if(!c||!c.isGroup)return;
+ $("#ginfo-title").textContent=c.n;
+ $("#ginfo-role").textContent="Tu rol: "+(puedoCrearEnlace(c)?"Administrador":"Miembro");
+ const admin=soyAdminGrupo(c);
+ $("#ginfo-ren").hidden=!admin;
+ $("#ginfo-code").hidden=!admin;
+ $("#ginfo-add").hidden=!admin;
+ $("#ginfo-cd").hidden=!admin;
+ $("#ginfo-linkbox").hidden=true;
+ // refrescar miembros
+ const {data,error}=await sb.from("conversation_members")
+  .select("user_id,role,profiles(id,display_name,avatar_url)")
+  .eq("conversation_id",c.id);
+ if(error)return toast(error.message);
+ const rows=data||[];
+ c.membersFull=rows.map(r=>({id:r.user_id,role:r.role||"member",profile:r.profiles}));
+ const meRow=rows.find(r=>r.user_id===me.id);
+ if(meRow)c.myRole=meRow.role||"member";
+ $("#ginfo-link").hidden=!puedoCrearEnlace(c);
+ $("#ginfolista").innerHTML=rows.map(r=>{
+  const nom=r.user_id===me.id?"Tú":(r.profiles?.display_name||"Usuario");
+  const rol=r.role==="admin"||r.role==="owner"?"Admin":"Miembro";
+  const esYo=r.user_id===me.id;
+  const esAdmin=r.role==="admin"||r.role==="owner";
+  let acciones="";
+  if(admin&&!esYo){
+   if(!esAdmin)acciones+=`<button type="button" class="btn-a" data-gprom="${r.user_id}" style="padding:6px 10px;font-size:13px">Hacer admin</button>`;
+   else acciones+=`<button type="button" class="btn-a" data-gdem="${r.user_id}" style="padding:6px 10px;font-size:13px">Quitar admin</button>`;
+   acciones+=`<button type="button" class="btn-a" data-gkick="${r.user_id}" style="padding:6px 10px;font-size:13px;color:#f66">Expulsar</button>`;
+  }
+  return `<div style="display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--line);border-radius:10px">
+    <div class="av r" style="width:36px;height:36px;font-size:14px">${esc((nom||"?")[0].toUpperCase())}</div>
+    <div style="flex:1;min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis">${esc(nom)}</b><small style="color:var(--mute)">${rol}</small></div>
+    <div style="display:flex;flex-direction:column;gap:4px">${acciones}</div>
+  </div>`;
+ }).join("")||"<small>Sin miembros</small>";
+ $("#ginfomodal").classList.add("on");
+}
+$("#ginfo-cerrar")&&($("#ginfo-cerrar").onclick=()=>$("#ginfomodal").classList.remove("on"));
+$("#ginfolista")&&($("#ginfolista").onclick=async e=>{
+ const kick=e.target.closest("[data-gkick]");
+ const prom=e.target.closest("[data-gprom]");
+ const dem=e.target.closest("[data-gdem]");
+ const c=curChat();if(!c||!c.isGroup)return;
+ if(kick){
+  if(!confirm("¿Expulsar a esta persona del grupo?"))return;
+  const {error}=await sb.rpc("expulsar_del_grupo",{p_conv:c.id,p_user:kick.dataset.gkick});
+  if(error){
+   // fallback directo
+   const r=await sb.from("conversation_members").delete().eq("conversation_id",c.id).eq("user_id",kick.dataset.gkick);
+   if(r.error)return toast(r.error.message);
+  }
+  toast("Miembro expulsado");
+  abrirInfoGrupo(c);
+  return;
+ }
+ if(prom){
+  const {error}=await sb.rpc("set_rol_grupo",{p_conv:c.id,p_user:prom.dataset.gprom,p_role:"admin"});
+  if(error){
+   const r=await sb.from("conversation_members").update({role:"admin"}).eq("conversation_id",c.id).eq("user_id",prom.dataset.gprom);
+   if(r.error)return toast(r.error.message);
+  }
+  toast("Ahora es admin");
+  abrirInfoGrupo(c);
+  return;
+ }
+ if(dem){
+  const {error}=await sb.rpc("set_rol_grupo",{p_conv:c.id,p_user:dem.dataset.gdem,p_role:"member"});
+  if(error){
+   const r=await sb.from("conversation_members").update({role:"member"}).eq("conversation_id",c.id).eq("user_id",dem.dataset.gdem);
+   if(r.error)return toast(r.error.message);
+  }
+  toast("Rol quitado");
+  abrirInfoGrupo(c);
+ }
+});
+$("#ginfo-ren")&&($("#ginfo-ren").onclick=async()=>{
+ const c=curChat();if(!c||!soyAdminGrupo(c))return toast("Solo un admin puede renombrar");
+ const nuevo=prompt("Nuevo nombre del grupo:",c.n);if(!nuevo||!nuevo.trim())return;
+ const {error}=await sb.rpc("renombrar_grupo",{conv:c.id,nuevo:nuevo.trim()});
+ if(error)return toast(error.message);
+ c.n=nuevo.trim();c.c=initial(c.n);
+ $("#ginfo-title").textContent=c.n;
+ drawList();renderChat(c);toast("Grupo renombrado");
+});
+$("#ginfo-code")&&($("#ginfo-code").onclick=async()=>{
+ const c=curChat();if(!c||!soyAdminGrupo(c))return toast("Solo un admin");
+ const cod=prompt("Nuevo código (1-5 letras/números). Vacío = quitar código:");
+ if(cod===null)return;
+ const t=cod.trim();
+ if(t&&!/^[a-zA-Z0-9]{1,5}$/.test(t))return toast("Código inválido");
+ const hash=t?await sha256(t):null;
+ const {error}=await sb.from("conversations").update({
+  codigo_hash:hash,
+  codigo_nombre:t?("Código"):null
+ }).eq("id",c.id);
+ if(error)return toast(error.message);
+ toast(t?"Código actualizado: "+t:"Código eliminado");
+});
+$("#ginfo-leave")&&($("#ginfo-leave").onclick=async()=>{
+ const c=curChat();if(!c||!c.isGroup)return;
+ if(!confirm("¿Salir del grupo?"))return;
+ // si eres el único admin, avisar
+ if(soyAdminGrupo(c)){
+  const admins=(c.membersFull||[]).filter(m=>m.role==="admin"||m.role==="owner");
+  if(admins.length<=1&&(c.membersFull||[]).length>1){
+   if(!confirm("Eres el único admin. Al salir el grupo se quedará sin admin. ¿Continuar?"))return;
+  }
+ }
+ const {error}=await sb.from("conversation_members").delete().eq("conversation_id",c.id).eq("user_id",me.id);
+ if(error)return toast(error.message);
+ $("#ginfomodal").classList.remove("on");
+ leaveChat();
+ await loadChats();
+ toast("Has salido del grupo");
+});
+
+
 drawList();empty();
+setTimeout(()=>{try{procesarInvitacionURL()}catch(e){}},500);
 
 const M=['','<rect x="20" y="20" width="24" height="24" rx="6" fill="none" stroke="K" stroke-width="3"/><rect x="28" y="28" width="18" height="18" rx="5" fill="K"/>','<path d="M18 19h28a3 3 0 013 3v15a3 3 0 01-3 3H32l-8 7v-7h-6a3 3 0 01-3-3V22a3 3 0 013-3z" fill="K"/>'];
 let sy="";[["r","#fff","url(#gr)","#fff"],["k","#c8102e","url(#gk)","#e5243b"]].forEach(([c,b,f,k])=>M.forEach((m,i)=>sy+=`<symbol id="s${c}${i}" viewBox="0 0 64 64"><rect x="1" y="1" width="62" height="62" rx="15" fill="${b}"/><rect x="4" y="4" width="56" height="56" rx="12" fill="${f}"/>${m.replace(/K/g,k)}<path d="M9 24Q9 9 24 9h18Q28 16 9 36z" fill="#fff" opacity=".2"/></symbol>`));
-document.body.insertAdjacentHTML("afterbegin",`<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="lgg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--hi)"/><stop offset="1" style="stop-color:var(--redd)"/></linearGradient><linearGradient id="gr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--hi)"/><stop offset="1" style="stop-color:var(--out)"/></linearGradient><linearGradient id="gk" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38383c"/><stop offset="1" stop-color="#050505"/></linearGradient><symbol id="lg" viewBox="0 0 32 32"><path d="M6 3h20a4 4 0 014 4v13a4 4 0 01-4 4H14l-7 6v-6H6a4 4 0 01-4-4V7a4 4 0 014-4z" fill="url(#lgg)"/><rect x="8" y="7.5" width="16" height="3" rx="1.5" fill="#fff"/><rect x="8" y="12.5" width="12" height="3" rx="1.5" fill="#fff" opacity=".8"/><rect x="8" y="17.5" width="8" height="3" rx="1.5" fill="#fff" opacity=".55"/></symbol><symbol id="scall" viewBox="0 0 64 64"><rect x="1" y="1" width="62" height="62" rx="15" fill="#c8102e"/><rect x="4" y="4" width="56" height="56" rx="12" fill="url(#gk)"/><path d="M20 15l7-2 4 10-5 4c2.5 6 7 10.5 13 13l4-5 10 4-2 7c-1 1.5-3 2.5-5 2.5C31 47 17 33 17 20c0-2 1-4 3-5z" style="fill:var(--hi)"/><path d="M9 24Q9 9 24 9h18Q28 16 9 36z" fill="#fff" opacity=".2"/></symbol><symbol id="svid" viewBox="0 0 64 64"><rect x="1" y="1" width="62" height="62" rx="15" fill="#c8102e"/><rect x="4" y="4" width="56" height="56" rx="12" fill="url(#gk)"/><rect x="12" y="21" width="30" height="22" rx="6" style="fill:var(--hi)"/><path d="M44 28l9-6v20l-9-6z" style="fill:var(--hi)"/><path d="M9 24Q9 9 24 9h18Q28 16 9 36z" fill="#fff" opacity=".2"/></symbol>${sy}</defs></svg>`);
+document.body.insertAdjacentHTML("afterbegin",`<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="lgg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--hi)"/><stop offset="1" style="stop-color:var(--redd)"/></linearGradient><linearGradient id="gr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--hi)"/><stop offset="1" style="stop-color:var(--out)"/></linearGradient><linearGradient id="gk" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38383c"/><stop offset="1" stop-color="#050505"/></linearGradient><symbol id="lg" viewBox="0 0 32 32"><path d="M6 3h20a4 4 0 014 4v13a4 4 0 01-4 4H14l-7 6v-6H6a4 4 0 01-4-4V7a4 4 0 014-4z" fill="url(#lgg)"/><rect x="8" y="7.5" width="16" height="3" rx="1.5" fill="#fff"/><rect x="8" y="12.5" width="12" height="3" rx="1.5" fill="#fff" opacity=".8"/><rect x="8" y="17.5" width="8" height="3" rx="1.5" fill="#fff" opacity=".55"/></symbol><symbol id="scall" viewBox="0 0 64 64"><rect x="1" y="1" width="62" height="62" rx="15" fill="#c8102e"/><rect x="4" y="4" width="56" height="56" rx="12" fill="url(#gk)"/><path d="M20 15l7-2 4 10-5 4c2.5 6 7 10.5 13 13l4-5 10 4-2 7c-1 1.5-3 2.5-5 2.5C31 47 17 33 17 20c0-2 1-4 3-5z" style="fill:var(--hi)"/><path d="M9 24Q9 9 24 9h18Q28 16 9 36z" fill="#fff" opacity=".2"/></symbol><symbol id="svidico" viewBox="0 0 64 64"><rect x="1" y="1" width="62" height="62" rx="15" fill="#c8102e"/><rect x="4" y="4" width="56" height="56" rx="12" fill="url(#gk)"/><rect x="12" y="21" width="30" height="22" rx="6" style="fill:var(--hi)"/><path d="M44 28l9-6v20l-9-6z" style="fill:var(--hi)"/><path d="M9 24Q9 9 24 9h18Q28 16 9 36z" fill="#fff" opacity=".2"/></symbol>${sy}</defs></svg>`);
 
 function deco(el,seed,op,n,a,b){let s=seed;const r=()=>(s=s*16807%2147483647)/2147483647;
  [["r",48,92,2,40],["k",2,46,60,96]].forEach(([c,x1,x2,y1,y2])=>{for(let i=0;i<n;i++){const d=document.createElement("div");d.className="st";
