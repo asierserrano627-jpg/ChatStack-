@@ -302,7 +302,14 @@ html[data-letra="grande"] .m{font-size:17px}
 .play{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#c8102e,#111);color:#fff;border:0;padding:0;flex:none}
 .play.on{animation:bl 1s infinite;box-shadow:0 0 0 3px rgba(200,16,46,.35)}
 .wave{position:relative;overflow:hidden}
-.wave::after{content:"";position:absolute;top:0;bottom:0;left:0;width:var(--p,0%);background:rgba(255,255,255,.35);pointer-events:none}
+.wave b{opacity:.4;transition:opacity .15s;animation-play-state:paused}
+.wave b.pl{opacity:1}
+.play.on ~ .wave b{animation-play-state:running}
+.recbar{display:none;flex:1;min-width:0;align-items:center;gap:8px;color:var(--txt);font-size:14px;height:44px;padding:0 6px}
+.recbar .rdot{width:10px;height:10px;border-radius:50%;background:#e5243b;flex:none;animation:bl 1s infinite}
+.recbar .rslide{margin-left:auto;color:var(--mute);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar.recording .recbar{display:flex}
+.bar.recording #inp,.bar.recording #emj{display:none}
 .bar{gap:4px}
 .bar .ic{width:34px;height:34px;padding:7px;flex:none}
 .bar .rec{width:34px;height:34px;flex:none}
@@ -1242,7 +1249,7 @@ function renderChat(c){
  <div class="msgs" id="ms"></div>
   <div class="emjp" id="emjp" hidden></div>
   <div class="rbar" id="rb" hidden><div><b id="rw"></b><span id="rt"></span></div><button class="ic" id="rx" aria-label="Cancelar respuesta">×</button></div>
- <form class="bar" id="f"><button type="button" class="ic" id="emj" aria-label="Emojis y stickers"><svg class="stk" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="stkg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff4d63"/><stop offset="1" stop-color="#b0061f"/></linearGradient></defs><path d="M24 3C12 3 3 12 3 24s9 21 21 21c3 0 6-.6 8.6-1.7L45 31.6c.6-2.4 1-5 1-7.6C46 12 36 3 24 3z" fill="#fff"/><path d="M24 6.5C13.9 6.5 6.5 14 6.5 24S13.9 41.5 24 41.5c2.6 0 5-.5 7.2-1.4 1.2-3.6 4.6-6.2 8.7-6.3.9-2.2 1.6-4.6 1.6-7.8C41.5 14 34.1 6.5 24 6.5z" fill="url(#stkg)"/><path d="M32.2 40.1c.4-3.9 3.4-6.9 8.3-7.5-1 3.8-4.2 6.5-8.3 7.5z" fill="#e9e9ee" stroke="#c8c8d0" stroke-width=".8"/><ellipse cx="17" cy="20" rx="3" ry="4" fill="#fff"/><ellipse cx="29.5" cy="20" rx="3" ry="4" fill="#fff"/><circle cx="17.8" cy="20.8" r="1.7" fill="#111"/><circle cx="30.3" cy="20.8" r="1.7" fill="#111"/><path d="M15 29c2.2 4.6 14 5.4 17.6.6" stroke="#fff" stroke-width="2.6" stroke-linecap="round" fill="none"/><path d="M11 12.5c3-3 7-4.4 11-4.4" stroke="#ffffff66" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg></button><input id="inp" placeholder="Escribe un mensaje" autocomplete="off" aria-label="Mensaje"><button type="button" class="rec" id="mic" aria-label="Mensaje de voz"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></button><button class="send" aria-label="Enviar"><svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-3-7-7-1z"/></svg></button></form>`;
+ <form class="bar" id="f"><button type="button" class="ic" id="emj" aria-label="Emojis y stickers"><svg class="stk" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="stkg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff4d63"/><stop offset="1" stop-color="#b0061f"/></linearGradient></defs><path d="M24 3C12 3 3 12 3 24s9 21 21 21c3 0 6-.6 8.6-1.7L45 31.6c.6-2.4 1-5 1-7.6C46 12 36 3 24 3z" fill="#fff"/><path d="M24 6.5C13.9 6.5 6.5 14 6.5 24S13.9 41.5 24 41.5c2.6 0 5-.5 7.2-1.4 1.2-3.6 4.6-6.2 8.7-6.3.9-2.2 1.6-4.6 1.6-7.8C41.5 14 34.1 6.5 24 6.5z" fill="url(#stkg)"/><path d="M32.2 40.1c.4-3.9 3.4-6.9 8.3-7.5-1 3.8-4.2 6.5-8.3 7.5z" fill="#e9e9ee" stroke="#c8c8d0" stroke-width=".8"/><ellipse cx="17" cy="20" rx="3" ry="4" fill="#fff"/><ellipse cx="29.5" cy="20" rx="3" ry="4" fill="#fff"/><circle cx="17.8" cy="20.8" r="1.7" fill="#111"/><circle cx="30.3" cy="20.8" r="1.7" fill="#111"/><path d="M15 29c2.2 4.6 14 5.4 17.6.6" stroke="#fff" stroke-width="2.6" stroke-linecap="round" fill="none"/><path d="M11 12.5c3-3 7-4.4 11-4.4" stroke="#ffffff66" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg></button><div class="recbar" id="recbar"><i class="rdot"></i><span id="rtimer">0:00</span><span class="rslide">‹ Desliza para cancelar</span></div><input id="inp" placeholder="Escribe un mensaje" autocomplete="off" aria-label="Mensaje"><button type="button" class="rec" id="mic" aria-label="Mensaje de voz"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></button><button class="send" aria-label="Enviar"><svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-3-7-7-1z"/></svg></button></form>`;
  marcarEstados(c);
  const ms=$("#ms");
  aplicarFondoChat(c);
@@ -1286,10 +1293,10 @@ function renderChat(c){
   try{i.setSelectionRange(p,p)}catch(err){}
  };
  $("#emj").onclick=()=>{cerrarPaneles("emjp");const p=$("#emjp");if(p.hidden)pintarEmojis();p.hidden=!p.hidden};
- $("#mic").onpointerdown=e=>{e.preventDefault();vozPendienteParar=false;if(!recorder)toggleVoz(c)};
+ $("#mic").onpointerdown=e=>{e.preventDefault();vozPendienteParar=false;vozCancel=false;vozX0=e.clientX;try{$("#mic").setPointerCapture(e.pointerId)}catch(err){}if(!recorder)toggleVoz(c)};
  $("#mic").onpointerup=()=>pararVoz();
- $("#mic").onpointerleave=()=>pararVoz();
- $("#mic").onpointercancel=()=>pararVoz();
+ $("#mic").onpointermove=e=>{if(recorder&&recorder.state==="recording"&&e.clientX-vozX0<-90){vozCancel=true;pararVoz()}};
+ $("#mic").onpointercancel=()=>{vozCancel=true;pararVoz()};
  $(".ch .who").onclick=()=>{if(c.isGroup)abrirInfoGrupo(c);else verPerfil(c)};
  $("#ms").oncontextmenu=e=>{const b=e.target.closest(".m[data-id]");if(!b)return;e.preventDefault();if(tocando)return;const m=c.m.find(z=>z.id===b.dataset.id);if(m)accionesMensaje(c,m)};
  onLongPress($("#ms"),".m[data-id]",b=>{const m=c.m.find(z=>z.id===b.dataset.id);if(m)accionesMensaje(c,m)});
@@ -1993,11 +2000,14 @@ async function toggleVoz(c){
   const path=`${me.id}/${Date.now()}.${ext}`;
   recorder=null;
   $("#mic")?.classList.remove("on");
+  setRecUI(false);
+  if(vozCancel){vozCancel=false;recChunks=[];return}
   const {error}=await sb.storage.from("audios").upload(path,blob,{contentType:blob.type});
   if(error)return toast("No se pudo subir el audio: "+error.message);
   await send(recChat,{kind:"voice",media_path:path});
  };
  rec.start();
+ setRecUI(true);
  $("#mic")?.classList.add("on");
  if(vozPendienteParar){vozPendienteParar=false;rec.stop()}
 }
@@ -2005,6 +2015,24 @@ let audioVoz=null,pathVoz=null;
 function iconoPlay(){return '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M7 5l12 7-12 7z" fill="currentColor"/></svg>'}
 function iconoPausa(){return '<svg viewBox="0 0 24 24" width="18" height="18"><rect x="6" y="5" width="4" height="14" fill="currentColor"/><rect x="14" y="5" width="4" height="14" fill="currentColor"/></svg>'}
 function fmtSeg(s){s=Math.floor(s||0);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")}
+// Onda estilo WhatsApp: las barras reproducidas se iluminan, el resto queda apagado
+function pintarOnda(wave,ratio){
+ const bs=wave.querySelectorAll("b"),n=bs.length;
+ bs.forEach((b,i)=>b.classList.toggle("pl",ratio>0&&(i+1)/n<=ratio));
+}
+// Grabación estilo WhatsApp: barra con punto rojo, tiempo y "Desliza para cancelar"
+let recTick=null,vozT0=0,vozCancel=false,vozX0=0;
+function setRecUI(on){
+ const b=document.querySelector(".bar"),rt=$("#rtimer");
+ if(!b)return;
+ b.classList.toggle("recording",on);
+ clearInterval(recTick);recTick=null;
+ if(on){
+  vozT0=Date.now();
+  if(rt)rt.textContent="0:00";
+  recTick=setInterval(()=>{const r=$("#rtimer");if(r)r.textContent=fmtSeg((Date.now()-vozT0)/1000)},200);
+ }
+}
 function pintarVoz(){
  document.querySelectorAll(".voice").forEach(v=>{
   const b=v.querySelector(".play");
@@ -2014,7 +2042,7 @@ function pintarVoz(){
   const suena=esEste&&!!audioVoz&&!audioVoz.paused;
   b.classList.toggle("on",suena);
   b.innerHTML=suena?iconoPausa():iconoPlay();
-  if(!esEste&&w)w.style.setProperty("--p","0%");
+  if(!esEste&&w)pintarOnda(w,0);
  });
 }
 function playVoz(path){
@@ -2033,7 +2061,7 @@ function playVoz(path){
   const v=document.querySelector(`.voice .play[data-path="${CSS.escape(path)}"]`)?.closest(".voice");
   if(!v||!a.duration)return;
   const w=v.querySelector(".wave");
-  if(w)w.style.setProperty("--p",(a.currentTime/a.duration*100)+"%");
+  if(w)pintarOnda(w,a.currentTime/a.duration);
   const d=v.querySelector(".dur");
   if(d)d.textContent=fmtSeg(a.currentTime)+" / "+fmtSeg(a.duration);
  };
@@ -2041,7 +2069,7 @@ function playVoz(path){
  a.onpause=pintarVoz;
  a.onended=()=>{
   if(audioVoz===a){audioVoz=null;pathVoz=null}
-  document.querySelectorAll(".wave").forEach(w=>w.style.setProperty("--p","0%"));
+  document.querySelectorAll(".wave").forEach(w=>pintarOnda(w,0));
   pintarVoz();
  };
  a.play().catch(err=>{
@@ -3878,19 +3906,24 @@ async function procesarInvitacionURL(){
  const hash=params.get("join");
  if(!hash||hash.length<16)return;
  window._joinHash=hash;
- // limpiar URL sin recargar
  try{
   const u=new URL(location.href);
   u.searchParams.delete("join");
   history.replaceState({},"",u.pathname+u.search+u.hash);
  }catch(e){}
- if(!me.id){
-  // guardar para despues del login
-  try{localStorage.setItem("cs_pending_join",hash)}catch(e){}
-  toast("Inicia sesión para unirte al grupo");
+
+ // Sesión ya iniciada: mostrar la invitación ahora
+ if(me.id){
+  try{localStorage.removeItem("cs_pending_join")}catch(e){}
+  await mostrarInvitacion(hash);
   return;
  }
- await mostrarInvitacion(hash);
+
+ // Todavía no sabemos si hay sesión: guardar para después del login
+ try{localStorage.setItem("cs_pending_join",hash)}catch(e){}
+ const {data}=await sb.auth.getSession();
+ // Si hay sesión, manejarSesion → retomarInvitacion la mostrará
+ if(!data?.session)toast("Inicia sesión para unirte al grupo");
 }
 function retomarInvitacion(){
  let h=null;try{h=localStorage.getItem("cs_pending_join");localStorage.removeItem("cs_pending_join")}catch(e){}
