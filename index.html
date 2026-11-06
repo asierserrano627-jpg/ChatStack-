@@ -302,14 +302,16 @@ html[data-letra="grande"] .m{font-size:17px}
 .play{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#c8102e,#111);color:#fff;border:0;padding:0;flex:none}
 .play.on{animation:bl 1s infinite;box-shadow:0 0 0 3px rgba(200,16,46,.35)}
 .wave{position:relative;overflow:hidden}
-.wave b{opacity:.4;transition:opacity .15s;animation-play-state:paused}
+.wave b{opacity:.4;transition:opacity .15s;animation:none}
 .wave b.pl{opacity:1}
-.play.on ~ .wave b{animation-play-state:running}
+.rlive{flex:1;display:flex;align-items:center;justify-content:flex-end;gap:2px;height:28px;min-width:0;overflow:hidden}
+.rlive b{width:3px;height:var(--h);background:#e5243b;border-radius:2px;flex:none}
 .recbar{display:none;flex:1;min-width:0;align-items:center;gap:8px;color:var(--txt);font-size:14px;height:44px;padding:0 6px}
 .recbar .rdot{width:10px;height:10px;border-radius:50%;background:#e5243b;flex:none;animation:bl 1s infinite}
 .recbar .rslide{margin-left:auto;color:var(--mute);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bar.recording .recbar{display:flex}
-.bar.recording #inp,.bar.recording #emj{display:none}
+.bar.recording #inp,.bar.recording #emj,.bar.recording #vnbtn{display:none}
+.bar #vnbtn{flex:none;width:40px;height:40px;padding:8px;order:0}
 .bar{gap:4px}
 .bar .ic{width:34px;height:34px;padding:7px;flex:none}
 .bar .rec{width:34px;height:34px;flex:none}
@@ -832,7 +834,7 @@ function toMsg(r){
  switch(r.kind){
   case "text": m.x=r.body;break;
   case "image": m.type="image";m.path=r.media_path;m.cap="";break;
-  case "voice": m.type="voice";m.dur="";m.path=r.media_path;break;
+  case "voice": m.type="voice";m.dur="";m.path=r.media_path;m.wave=parseOnda(r.body);break;
   case "video_note": m.type="video_note";m.path=r.media_path;m.dur=r.body||"";break;
   case "live_location":{m.type="live_location";try{m.live=typeof r.body==="string"?JSON.parse(r.body):(r.body||{})}catch(e){m.live={}}m.x="Ubicación en vivo";break;}
   case "sticker": m.type="sticker";m.sid=r.sticker_id;break;
@@ -896,7 +898,7 @@ function bub(m){
  let body;
  if(m.type==="deleted") body=`<span class="del">${BAN}Este mensaje fue eliminado</span>`;
  else if(m.type==="image") body=m.path?(ahorro()&&!vistos.has(m.id)?`<button class="btn-a" data-ver="${esc(m.id)}" type="button">Ver foto</button>`:`<img class="foto" src="${esc(urlFoto(m.path))}" alt="Foto">`):`<div class="img"><div class="ph">${PIC}</div>${m.cap?`<div class="cap">${esc(m.cap)}</div>`:""}</div>`;
- else if(m.type==="voice") body=`<div class="voice"><button class="play" data-path="${esc(m.path||"")}" aria-label="Reproducir">${iconoPlay()}</button><div class="wave">${WAVE}</div><span class="dur">${m.dur||""}</span></div>`;
+ else if(m.type==="voice") body=`<div class="voice"><button class="play" data-path="${esc(m.path||"")}" aria-label="Reproducir">${iconoPlay()}</button><div class="wave"${m.wave?"":' data-sinonda="1"'}>${ondaHtml(m.wave)}</div><span class="dur">${m.dur||""}</span></div>`;
  else if(m.type==="video_note") body=`<div class="vn" data-vn="${esc(m.path||"")}"><video src="${esc(urlVideo(m.path))}" playsinline muted loop preload="metadata"></video><div class="vn-play">▶</div></div>`;
  else if(m.type==="live_location") body=htmlLiveLoc(m);
  else if(m.type==="call") body=`<div class="clog"><div><b>Llamada</b><small>${m.missed?"Sin respuesta":"Duración "+(m.dur||"00:00")}</small></div></div>`;
@@ -1249,7 +1251,7 @@ function renderChat(c){
  <div class="msgs" id="ms"></div>
   <div class="emjp" id="emjp" hidden></div>
   <div class="rbar" id="rb" hidden><div><b id="rw"></b><span id="rt"></span></div><button class="ic" id="rx" aria-label="Cancelar respuesta">×</button></div>
- <form class="bar" id="f"><button type="button" class="ic" id="emj" aria-label="Emojis y stickers"><svg class="stk" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="stkg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff4d63"/><stop offset="1" stop-color="#b0061f"/></linearGradient></defs><path d="M24 3C12 3 3 12 3 24s9 21 21 21c3 0 6-.6 8.6-1.7L45 31.6c.6-2.4 1-5 1-7.6C46 12 36 3 24 3z" fill="#fff"/><path d="M24 6.5C13.9 6.5 6.5 14 6.5 24S13.9 41.5 24 41.5c2.6 0 5-.5 7.2-1.4 1.2-3.6 4.6-6.2 8.7-6.3.9-2.2 1.6-4.6 1.6-7.8C41.5 14 34.1 6.5 24 6.5z" fill="url(#stkg)"/><path d="M32.2 40.1c.4-3.9 3.4-6.9 8.3-7.5-1 3.8-4.2 6.5-8.3 7.5z" fill="#e9e9ee" stroke="#c8c8d0" stroke-width=".8"/><ellipse cx="17" cy="20" rx="3" ry="4" fill="#fff"/><ellipse cx="29.5" cy="20" rx="3" ry="4" fill="#fff"/><circle cx="17.8" cy="20.8" r="1.7" fill="#111"/><circle cx="30.3" cy="20.8" r="1.7" fill="#111"/><path d="M15 29c2.2 4.6 14 5.4 17.6.6" stroke="#fff" stroke-width="2.6" stroke-linecap="round" fill="none"/><path d="M11 12.5c3-3 7-4.4 11-4.4" stroke="#ffffff66" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg></button><div class="recbar" id="recbar"><i class="rdot"></i><span id="rtimer">0:00</span><span class="rslide">‹ Desliza para cancelar</span></div><input id="inp" placeholder="Escribe un mensaje" autocomplete="off" aria-label="Mensaje"><button type="button" class="rec" id="mic" aria-label="Mensaje de voz"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></button><button class="send" aria-label="Enviar"><svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-3-7-7-1z"/></svg></button></form>`;
+ <form class="bar" id="f"><button type="button" class="ic" id="emj" aria-label="Emojis y stickers"><svg class="stk" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="stkg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff4d63"/><stop offset="1" stop-color="#b0061f"/></linearGradient></defs><path d="M24 3C12 3 3 12 3 24s9 21 21 21c3 0 6-.6 8.6-1.7L45 31.6c.6-2.4 1-5 1-7.6C46 12 36 3 24 3z" fill="#fff"/><path d="M24 6.5C13.9 6.5 6.5 14 6.5 24S13.9 41.5 24 41.5c2.6 0 5-.5 7.2-1.4 1.2-3.6 4.6-6.2 8.7-6.3.9-2.2 1.6-4.6 1.6-7.8C41.5 14 34.1 6.5 24 6.5z" fill="url(#stkg)"/><path d="M32.2 40.1c.4-3.9 3.4-6.9 8.3-7.5-1 3.8-4.2 6.5-8.3 7.5z" fill="#e9e9ee" stroke="#c8c8d0" stroke-width=".8"/><ellipse cx="17" cy="20" rx="3" ry="4" fill="#fff"/><ellipse cx="29.5" cy="20" rx="3" ry="4" fill="#fff"/><circle cx="17.8" cy="20.8" r="1.7" fill="#111"/><circle cx="30.3" cy="20.8" r="1.7" fill="#111"/><path d="M15 29c2.2 4.6 14 5.4 17.6.6" stroke="#fff" stroke-width="2.6" stroke-linecap="round" fill="none"/><path d="M11 12.5c3-3 7-4.4 11-4.4" stroke="#ffffff66" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg></button><div class="recbar" id="recbar"><i class="rdot"></i><span id="rtimer">0:00</span><div class="rlive" id="rlive"></div><span class="rslide">‹ Desliza para cancelar</span></div><input id="inp" placeholder="Escribe un mensaje" autocomplete="off" aria-label="Mensaje"><button type="button" class="ic" id="vnbtn" aria-label="Nota de vídeo circular" title="Nota de vídeo circular"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="M16 10l5-3v10l-5-3"/></svg></button><button type="button" class="rec" id="mic" aria-label="Mensaje de voz"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></button><button class="send" aria-label="Enviar"><svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-3-7-7-1z"/></svg></button></form>`;
  marcarEstados(c);
  const ms=$("#ms");
  aplicarFondoChat(c);
@@ -1297,6 +1299,7 @@ function renderChat(c){
  $("#mic").onpointerup=()=>pararVoz();
  $("#mic").onpointermove=e=>{if(recorder&&recorder.state==="recording"&&e.clientX-vozX0<-90){vozCancel=true;pararVoz()}};
  $("#mic").onpointercancel=()=>{vozCancel=true;pararVoz()};
+ $("#vnbtn").onclick=()=>empezarNotaVideo(c);
  $(".ch .who").onclick=()=>{if(c.isGroup)abrirInfoGrupo(c);else verPerfil(c)};
  $("#ms").oncontextmenu=e=>{const b=e.target.closest(".m[data-id]");if(!b)return;e.preventDefault();if(tocando)return;const m=c.m.find(z=>z.id===b.dataset.id);if(m)accionesMensaje(c,m)};
  onLongPress($("#ms"),".m[data-id]",b=>{const m=c.m.find(z=>z.id===b.dataset.id);if(m)accionesMensaje(c,m)});
@@ -1989,7 +1992,7 @@ async function toggleVoz(c){
  let stream;
  try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}
  catch(err){toast("Sin acceso al micrófono: "+err.message);return}
- recChunks=[];recChat=c;
+ recChunks=[];recChat=c;iniciarNivel(stream);
  const rec=new MediaRecorder(stream);
  recorder=rec;
  rec.ondataavailable=e=>{if(e.data.size)recChunks.push(e.data)};
@@ -2001,10 +2004,12 @@ async function toggleVoz(c){
   recorder=null;
   $("#mic")?.classList.remove("on");
   setRecUI(false);
+  pararNivel();
+  const ond=reducirOnda(niveles,30);
   if(vozCancel){vozCancel=false;recChunks=[];return}
   const {error}=await sb.storage.from("audios").upload(path,blob,{contentType:blob.type});
   if(error)return toast("No se pudo subir el audio: "+error.message);
-  await send(recChat,{kind:"voice",media_path:path});
+  await send(recChat,{kind:"voice",media_path:path,body:JSON.stringify(ond)});
  };
  rec.start();
  setRecUI(true);
@@ -2015,6 +2020,63 @@ let audioVoz=null,pathVoz=null;
 function iconoPlay(){return '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M7 5l12 7-12 7z" fill="currentColor"/></svg>'}
 function iconoPausa(){return '<svg viewBox="0 0 24 24" width="18" height="18"><rect x="6" y="5" width="4" height="14" fill="currentColor"/><rect x="14" y="5" width="4" height="14" fill="currentColor"/></svg>'}
 function fmtSeg(s){s=Math.floor(s||0);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")}
+// Onda real: alturas calculadas del audio (no aleatorias)
+const ondaPlano=Array(30).fill(4);
+function parseOnda(b){try{const v=JSON.parse(b);return Array.isArray(v)&&v.length?v:null}catch(e){return null}}
+function ondaHtml(h){return (h||ondaPlano).map(x=>`<b style="--h:${x}px"></b>`).join("")}
+function reducirOnda(vals,n){
+ const len=vals.length;
+ if(!len)return Array(n).fill(4);
+ const k=len/n,out=[];let max=0;
+ for(let i=0;i<n;i++){
+  const a=Math.floor(i*k),z=Math.max(a+1,Math.floor((i+1)*k));
+  let pk=0;
+  for(let j=a;j<z&&j<len;j++){const v=Math.abs(vals[j]);if(v>pk)pk=v}
+  out.push(pk);if(pk>max)max=pk;
+ }
+ return out.map(v=>3+Math.round(max?v/max*21:0));
+}
+const ondasCache=new Map();
+function pintarAlturas(w,h){w.querySelectorAll("b").forEach((b,i)=>b.style.setProperty("--h",(h[i]??3)+"px"))}
+// Mensajes antiguos sin onda guardada: se decodifica el audio una vez y se cachea
+async function hidratarOndas(){
+ const els=[...document.querySelectorAll(".wave[data-sinonda]")].filter(w=>!w.dataset.ond);
+ for(const w of els){
+  const path=w.closest(".voice")?.querySelector(".play")?.dataset.path;
+  if(!path)continue;
+  w.dataset.ond="1";
+  let h=ondasCache.get(path);
+  if(!h){
+   try{
+    const {data}=sb.storage.from("audios").getPublicUrl(path);
+    const buf=await (await fetch(data.publicUrl)).arrayBuffer();
+    const ab=await audioCtx().decodeAudioData(buf);
+    h=reducirOnda(ab.getChannelData(0),30);
+    ondasCache.set(path,h);
+   }catch(e){continue}
+  }
+  pintarAlturas(w,h);
+ }
+}
+// Captura de niveles mientras se graba
+let nivelCtx=null,nivelTick=null,niveles=[];
+function iniciarNivel(stream){
+ niveles=[];
+ try{
+  nivelCtx=new (window.AudioContext||window.webkitAudioContext)();
+  const an=nivelCtx.createAnalyser();an.fftSize=512;
+  nivelCtx.createMediaStreamSource(stream).connect(an);
+  const buf=new Uint8Array(an.fftSize);
+  nivelTick=setInterval(()=>{
+   an.getByteTimeDomainData(buf);
+   let pk=0;for(const v of buf){const d=Math.abs(v-128);if(d>pk)pk=d}
+   niveles.push(pk/128);
+   const vivo=$("#rlive");
+   if(vivo)vivo.innerHTML=niveles.slice(-40).map(x=>`<b style="--h:${3+Math.round(Math.min(1,x*1.6)*21)}px"></b>`).join("");
+  },90);
+ }catch(e){nivelCtx=null}
+}
+function pararNivel(){clearInterval(nivelTick);nivelTick=null;try{nivelCtx&&nivelCtx.close()}catch(e){}nivelCtx=null}
 // Onda estilo WhatsApp: las barras reproducidas se iluminan, el resto queda apagado
 function pintarOnda(wave,ratio){
  const bs=wave.querySelectorAll("b"),n=bs.length;
@@ -2774,6 +2836,7 @@ $("#seliminar").onclick=async()=>{
 const previas=new Map();
 let previasEnCurso=false;
 async function cargarPrevias(){
+ hidratarOndas();
  if(previasEnCurso)return;
  previasEnCurso=true;
  try{
